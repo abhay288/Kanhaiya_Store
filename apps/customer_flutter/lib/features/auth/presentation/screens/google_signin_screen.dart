@@ -27,16 +27,26 @@ class GoogleSignInScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(AppDimensions.lg),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.lock_person_outlined,
-                  size: 52,
-                  color: AppColors.primary,
+              Center(
+                child: Container(
+                  width: 90,
+                  height: 90,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Image.asset(
+                    'assets/images/kgs_logo.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               const SizedBox(height: AppDimensions.xl),

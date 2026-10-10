@@ -25,7 +25,21 @@ class AdminDashboardScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text('Store Admin Center'),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Image.asset(
+                'assets/images/kgs_logo.png',
+                width: 24,
+                height: 24,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text('Store Admin Center'),
+          ],
+        ),
         backgroundColor: AppColors.onPrimaryContainer,
         foregroundColor: Colors.white,
       ),

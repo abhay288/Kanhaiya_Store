@@ -1,5 +1,5 @@
 import React from 'react';
-import { Store, Phone } from 'lucide-react';
+import { Phone } from 'lucide-react';
 
 interface HeaderProps {
   title?: string;
@@ -13,9 +13,16 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="store-header">
       <div className="header-brand">
-        <div className="brand-logo-badge">
-          <Store size={20} />
-        </div>
+        <img
+          src="/logo.png"
+          alt="Kanhaiya General Store Logo"
+          style={{
+            width: '38px',
+            height: '38px',
+            objectFit: 'contain',
+            borderRadius: 'var(--radius-sm)',
+          }}
+        />
         <div className="brand-text">
           <h1>{title}</h1>
           <p>{subtitle}</p>

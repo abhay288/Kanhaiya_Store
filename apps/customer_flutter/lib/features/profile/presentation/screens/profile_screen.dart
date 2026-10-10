@@ -148,9 +148,16 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: AppDimensions.xl),
 
             // Store Info Footer
-            const Text(
-              'Kanhaiya General Store • App v1.0.0 (Phase 1)',
-              style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('assets/images/kgs_logo.png', width: 28, height: 28),
+                const SizedBox(width: 8),
+                const Text(
+                  'Kanhaiya General Store • App v1.0.0 (Phase 2)',
+                  style: TextStyle(fontSize: 11, color: AppColors.textTertiary, fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
           ],
         ),

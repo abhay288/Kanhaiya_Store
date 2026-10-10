@@ -39,6 +39,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
   if (submittedOrderNumber) {
     return (
       <div style={{ padding: '32px 20px', textAlign: 'center' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <img
+            src="/logo.png"
+            alt="Kanhaiya General Store"
+            style={{ width: '64px', height: '64px', objectFit: 'contain' }}
+          />
+        </div>
         <div style={{ color: 'var(--primary)', marginBottom: '16px' }}>
           <CheckCircle2 size={54} />
         </div>

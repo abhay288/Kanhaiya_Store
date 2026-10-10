@@ -33,8 +33,9 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 96,
-              height: 96,
+              width: 110,
+              height: 110,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
@@ -46,10 +47,9 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.storefront_rounded,
-                size: 54,
-                color: AppColors.primary,
+              child: Image.asset(
+                'assets/images/kgs_logo.png',
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: AppDimensions.xl),

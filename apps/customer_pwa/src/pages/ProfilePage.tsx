@@ -266,7 +266,10 @@ export const ProfilePage: React.FC = () => {
           border: '1px solid var(--border)',
         }}
       >
-        <strong>Kanhaiya General Store</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+          <img src="/logo.png" alt="KGS Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+          <strong>Kanhaiya General Store</strong>
+        </div>
         <p>Serving our neighborhood with fresh grains, pulses, dairy & packaged groceries since 2012.</p>
         <p style={{ marginTop: '6px', color: 'var(--text-muted)' }}>
           Backend ID-Token verification & role provisioning enforced via MongoDB Atlas + Firebase Admin SDK.

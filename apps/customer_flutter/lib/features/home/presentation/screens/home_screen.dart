@@ -22,7 +22,15 @@ class HomeScreen extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.store, color: AppColors.primary, size: 20),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.asset(
+                    'assets/images/kgs_logo.png',
+                    width: 26,
+                    height: 26,
+                    fit: BoxFit.contain,
+                  ),
+                ),
                 const SizedBox(width: 6),
                 const Text(
                   'Kanhaiya General Store',
