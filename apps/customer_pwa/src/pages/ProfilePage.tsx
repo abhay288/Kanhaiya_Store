@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, MapPin, Shield, LogOut, CheckCircle, Server, UserCheck } from 'lucide-react';
 import { apiClient, UserProfile } from '../api/client';
+import { signInWithGoogleWeb } from '../config/firebase';
 
 export const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -28,6 +29,26 @@ export const ProfilePage: React.FC = () => {
       .then((res) => setHealthStatus(`Online (${res.data.database})`))
       .catch(() => setHealthStatus('Offline / Dev Mode'));
   }, []);
+
+  const handleRealGoogleSignIn = async () => {
+    setLoading(true);
+    setAuthMsg(null);
+    try {
+      const { idToken } = await signInWithGoogleWeb();
+      const res = await apiClient.authWithGoogle(idToken);
+      setUser(res.data.user);
+      setAuthMsg(`Signed in with Google as ${res.data.user.displayName}`);
+    } catch (err: unknown) {
+      const error = err as { code?: string; message?: string };
+      if (error?.code === 'auth/popup-closed-by-user') {
+        setAuthMsg('Google sign-in popup cancelled');
+      } else {
+        setAuthMsg(`Google Sign-In: ${error?.message || String(err)}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSimulatedGoogleSignIn = async (role: 'CUSTOMER' | 'ADMIN') => {
     setLoading(true);
@@ -156,17 +177,17 @@ export const ProfilePage: React.FC = () => {
         {!user ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button
-              onClick={() => handleSimulatedGoogleSignIn('CUSTOMER')}
+              onClick={handleRealGoogleSignIn}
               disabled={loading}
               className="add-btn"
               style={{
                 backgroundColor: 'var(--primary)',
                 color: '#FFFFFF',
-                padding: '9px 14px',
-                fontSize: '0.82rem',
+                padding: '10px 14px',
+                fontSize: '0.85rem',
               }}
             >
-              <UserCheck size={16} /> Continue with Google (Customer)
+              <UserCheck size={16} /> Continue with Google
             </button>
             <button
               onClick={() => handleSimulatedGoogleSignIn('ADMIN')}
@@ -180,7 +201,7 @@ export const ProfilePage: React.FC = () => {
                 fontSize: '0.82rem',
               }}
             >
-              Test Admin Role Authentication
+              Simulate Store Admin Sign-In
             </button>
           </div>
         ) : (

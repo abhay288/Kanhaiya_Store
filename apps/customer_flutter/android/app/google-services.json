@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "359309992004",
+    "project_id": "kanhaiya-general-store",
+    "storage_bucket": "kanhaiya-general-store.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:359309992004:android:7e19a07ac1b6fbc212dc11",
+        "android_client_info": {
+          "package_name": "com.kanhaiya.store.customer_flutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "359309992004-fpqosvahke7ks07q6d0cos6183vkcdp4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAX6EKTDx4gL09YotiAdJrlC4UbI26vew0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "359309992004-fpqosvahke7ks07q6d0cos6183vkcdp4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
