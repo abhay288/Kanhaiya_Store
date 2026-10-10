@@ -1,0 +1,13 @@
+{
+  "name": "@kanhaiya/api-contracts",
+  "version": "1.0.0",
+  "description": "Shared TypeScript data contracts and DTOs for Kanhaiya General Store",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
