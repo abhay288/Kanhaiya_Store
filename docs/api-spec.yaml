@@ -48,6 +48,37 @@ paths:
         '401':
           description: Invalid or expired Firebase ID token
 
+  /auth/me:
+    get:
+      summary: Retrieve current authenticated user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+        '401':
+          description: Unauthorized - Valid token required
+
+  /auth/logout:
+    post:
+      summary: Terminate session
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /admin/test:
+    get:
+      summary: Verify administrator authorization
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Authorization confirmed
+        '403':
+          description: Forbidden - Administrator privilege required
+
   /categories:
     get:
       summary: Fetch active categories
@@ -189,7 +220,7 @@ components:
             id: { type: string }
             email: { type: string }
             displayName: { type: string }
-            role: { type: string, enum: [customer, admin, store_manager] }
+            role: { type: string, enum: [CUSTOMER, ADMIN] }
 
     Category:
       type: object

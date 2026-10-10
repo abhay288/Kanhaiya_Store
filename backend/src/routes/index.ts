@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { healthRouter } from '../modules/health/health.router';
-import { authRouter } from '../modules/auth/auth.router';
+import { authRoutes } from '../modules/auth/auth.routes';
 import { categoryRouter } from '../modules/categories/category.router';
 import { productRouter } from '../modules/products/product.router';
 import { cartRouter } from '../modules/cart/cart.router';
@@ -17,7 +17,7 @@ const router = Router();
 router.use(healthRouter);
 
 // Domain API endpoints
-router.use('/auth', authRouter);
+router.use('/auth', authRoutes);
 router.use('/categories', categoryRouter);
 router.use('/products', productRouter);
 router.use('/cart', cartRouter);

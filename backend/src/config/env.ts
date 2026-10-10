@@ -9,6 +9,9 @@ const envSchema = z.object({
   MONGODB_URI: z.string().default('mongodb://127.0.0.1:27017/kanhaiya_store'),
   CORS_ORIGIN: z.string().default('http://localhost:5173,http://localhost:3000'),
   
+  JWT_SECRET: z.string().default('kanhaiya_store_jwt_secret_dev_key_2026'),
+  ADMIN_ALLOWED_EMAILS: z.string().default('admin@kanhaiyastore.com,mauryaabhay518@gmail.com'),
+  
   FIREBASE_PROJECT_ID: z.string().default('dummy-firebase-project'),
   FIREBASE_CLIENT_EMAIL: z.string().default('dummy@example.iam.gserviceaccount.com'),
   FIREBASE_PRIVATE_KEY: z.string().default('dummy-private-key'),

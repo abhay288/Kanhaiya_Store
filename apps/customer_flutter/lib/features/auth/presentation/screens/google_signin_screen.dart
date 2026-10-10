@@ -70,7 +70,7 @@ class GoogleSignInScreen extends ConsumerWidget {
                   border: Border.all(color: AppColors.border),
                 ),
                 child: const Text(
-                  'Phase 1 Architecture Note: Real Google OAuth & Firebase Token validation activates in Phase 2. The buttons below allow verifying both Customer and Admin permission flows in the router.',
+                  'Phase 2 Authentication: Integrates with backend POST /api/v1/auth/google. Use the quick credentials below to verify customer or store administrator routing in offline dev mode.',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -86,7 +86,7 @@ class GoogleSignInScreen extends ConsumerWidget {
                 onPressed: authState.isLoading
                     ? null
                     : () async {
-                        await ref.read(authProvider.notifier).signInWithGoogle(simulateAsAdmin: false);
+                        await ref.read(authProvider.notifier).signInWithGoogleDemo(simulateAsAdmin: false);
                         if (context.mounted) {
                           context.go('/profile');
                         }
@@ -107,7 +107,7 @@ class GoogleSignInScreen extends ConsumerWidget {
                 onPressed: authState.isLoading
                     ? null
                     : () async {
-                        await ref.read(authProvider.notifier).signInWithGoogle(simulateAsAdmin: true);
+                        await ref.read(authProvider.notifier).signInWithGoogleDemo(simulateAsAdmin: true);
                         if (context.mounted) {
                           context.go('/admin');
                         }

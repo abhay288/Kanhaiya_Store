@@ -12,6 +12,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
   const { cart, addToCart } = useCart();
   const cartItem = cart.find((item) => item.product.id === product.id);
   const inCartCount = cartItem ? cartItem.quantity : 0;
+  const discountPercent = product.mrp > product.sellingPrice
+    ? Math.round(((product.mrp - product.sellingPrice) / product.mrp) * 100)
+    : 0;
 
   const handleCardClick = (e: React.MouseEvent) => {
     // If not clicking the button, navigate to details
@@ -26,6 +29,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
         <span className="stock-badge">
           {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
         </span>
+        {discountPercent > 0 && (
+          <span className="discount-badge">
+            {discountPercent}% OFF
+          </span>
+        )}
       </div>
 
       <div className="product-info">

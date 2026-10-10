@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Category } from '../types';
 import { repository } from '../api/productRepository';
+import { CategoryIcon } from '../components/common/CategoryIcon';
 import { LoadingState } from '../components/common/FeedbackStates';
 
 interface CategoriesPageProps {
@@ -23,7 +24,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({ onSelectCategory
 
   return (
     <div style={{ padding: '16px' }}>
-      <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '6px' }}>
+      <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '6px', color: 'var(--text-main)' }}>
         Store Categories
       </h2>
       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
@@ -40,7 +41,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({ onSelectCategory
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '14px 16px',
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--surface)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-md)',
               cursor: 'pointer',
@@ -54,13 +55,13 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({ onSelectCategory
                   height: '44px',
                   borderRadius: '10px',
                   backgroundColor: 'var(--primary-subtle)',
+                  color: 'var(--primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.4rem',
                 }}
               >
-                {cat.icon}
+                <CategoryIcon slug={cat.slug} size={22} />
               </div>
               <div>
                 <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>

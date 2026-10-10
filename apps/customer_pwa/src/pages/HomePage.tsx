@@ -3,6 +3,7 @@ import { Search, ChevronRight } from 'lucide-react';
 import { Category, Product } from '../types';
 import { repository } from '../api/productRepository';
 import { ProductCard } from '../components/product/ProductCard';
+import { CategoryIcon } from '../components/common/CategoryIcon';
 import { LoadingState, ErrorState } from '../components/common/FeedbackStates';
 
 interface HomePageProps {
@@ -55,55 +56,57 @@ export const HomePage: React.FC<HomePageProps> = ({
           alignItems: 'center',
           gap: '10px',
           padding: '10px 14px',
-          backgroundColor: '#f1f5f9',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid var(--border)',
           borderRadius: 'var(--radius-md)',
           cursor: 'pointer',
-          marginBottom: '20px',
+          marginBottom: '16px',
         }}
       >
         <Search size={18} color="var(--text-muted)" />
         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Search atta, dal, oil, spices...
+          Search chakki atta, pulses, pure ghee, spices...
         </span>
       </div>
 
       {/* Hero Welcome Announcement */}
       <div
         style={{
-          padding: '16px',
-          backgroundColor: '#166534',
-          borderRadius: 'var(--radius-lg)',
+          padding: '18px',
+          backgroundColor: 'var(--primary)',
+          borderRadius: 'var(--radius-md)',
           color: '#ffffff',
           marginBottom: '24px',
-          backgroundImage: 'linear-gradient(135deg, #166534 0%, #15803d 100%)',
+          border: '1px solid var(--primary-dark)',
         }}
       >
         <span
           style={{
-            fontSize: '0.7rem',
+            fontSize: '0.68rem',
             fontWeight: 800,
+            letterSpacing: '0.5px',
             textTransform: 'uppercase',
-            backgroundColor: 'rgba(255,255,255,0.2)',
+            backgroundColor: 'rgba(255,255,255,0.15)',
             padding: '3px 8px',
             borderRadius: '4px',
             display: 'inline-block',
             marginBottom: '8px',
           }}
         >
-          Daily Neighborhood Specials
+          Neighborhood Daily Store
         </span>
         <h2 style={{ fontSize: '1.15rem', fontWeight: 800, lineHeight: 1.3 }}>
-          Free Home Delivery on Orders Above ₹500
+          Free Doorstep Delivery on Orders Above ₹500
         </h2>
-        <p style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '4px' }}>
-          Genuine brands, untouched pulses, chakki atta & pantry essentials.
+        <p style={{ fontSize: '0.78rem', opacity: 0.88, marginTop: '4px' }}>
+          Hand-picked quality, farm-sourced lentils, authentic brands & daily essentials.
         </p>
       </div>
 
       {/* Quick Category Grid */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Shop By Category</h3>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>Shop By Category</h3>
           <span
             onClick={onViewAllProducts}
             style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
@@ -119,7 +122,9 @@ export const HomePage: React.FC<HomePageProps> = ({
               className="category-pill"
               onClick={() => onSelectCategory(cat)}
             >
-              <div className="category-icon">{cat.icon}</div>
+              <div className="category-icon-wrapper">
+                <CategoryIcon slug={cat.slug} size={18} />
+              </div>
               <div className="category-title" style={{ fontSize: '0.7rem', lineHeight: 1.2 }}>
                 {cat.name.split(',')[0]}
               </div>
@@ -131,7 +136,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* Featured Products */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Popular Daily Essentials</h3>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>Popular Daily Essentials</h3>
           <span
             onClick={onViewAllProducts}
             style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}

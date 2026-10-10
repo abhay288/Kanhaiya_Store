@@ -1,11 +1,13 @@
 import { app } from './app';
 import { env } from './config/env';
 import { connectDatabase, disconnectDatabase } from './config/database';
+import { initializeFirebaseAdmin } from './config/firebase-admin';
 import { logger } from './utils/logger';
 
 async function bootstrap() {
   // Attempt DB connection gracefully (will not crash app if offline in dev)
   await connectDatabase();
+  initializeFirebaseAdmin();
 
   const server = app.listen(env.PORT, () => {
     logger.info(`🚀 Kanhaiya General Store API running on port ${env.PORT} [${env.NODE_ENV}]`);

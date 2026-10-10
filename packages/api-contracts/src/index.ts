@@ -1,11 +1,24 @@
-export type UserRole = 'customer' | 'admin' | 'store_manager';
+export type UserRole = 'CUSTOMER' | 'ADMIN' | 'customer' | 'admin' | 'store_manager';
 
 export interface UserDto {
   id: string;
   email: string;
   displayName: string;
-  role: UserRole;
-  phoneNumber?: string;
+  role: 'CUSTOMER' | 'ADMIN';
+  photoURL?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt: string;
+}
+
+export interface AuthGoogleRequest {
+  idToken: string;
+}
+
+export interface AuthResponseData {
+  user: UserDto;
+  token: string;
 }
 
 export interface CategoryDto {
@@ -35,7 +48,7 @@ export interface ProductDto {
 }
 
 export type OrderStatus = 'placed' | 'confirmed' | 'packed' | 'out_for_delivery' | 'delivered' | 'cancelled';
-export type PaymentMethod = 'cod' | 'whatsapp_qr';
+export type PaymentMethod = 'cod' | 'whatsapp_qr' | 'COD' | 'WhatsApp QR';
 export type PaymentStatus = 'pending' | 'verified' | 'failed' | 'collected';
 
 export interface OrderItemDto {
@@ -67,6 +80,7 @@ export interface ApiResponse<T> {
   success: boolean;
   message?: string;
   data?: T;
+  timestamp?: string;
   error?: {
     code: string;
     message: string;

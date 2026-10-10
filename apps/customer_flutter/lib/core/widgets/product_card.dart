@@ -115,6 +115,7 @@ class ProductCard extends ConsumerWidget {
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: AppColors.primary,
+                      fontFeatures: [FontFeature.tabularFigures()],
                     ),
                   ),
                   if (product.mrp > product.sellingPrice) ...[
@@ -125,6 +126,16 @@ class ProductCard extends ConsumerWidget {
                         fontSize: 11,
                         color: AppColors.textTertiary,
                         decoration: TextDecoration.lineThrough,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${(((product.mrp - product.sellingPrice) / product.mrp) * 100).round()}% OFF',
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.accent,
                       ),
                     ),
                   ],

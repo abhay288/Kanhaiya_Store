@@ -167,7 +167,15 @@ class HomeScreen extends ConsumerWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(cat.icon, style: const TextStyle(fontSize: 26)),
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryContainer,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(cat.iconData, color: AppColors.primary, size: 18),
+                              ),
                               const SizedBox(height: 4),
                               Text(
                                 cat.name.split(',')[0],

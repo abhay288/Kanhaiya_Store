@@ -34,7 +34,7 @@ class CategoryScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                   ),
                   alignment: Alignment.center,
-                  child: Text(cat.icon, style: const TextStyle(fontSize: 24)),
+                  child: Icon(cat.iconData, color: AppColors.primary, size: 24),
                 ),
                 title: Text(
                   cat.name,
