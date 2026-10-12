@@ -162,20 +162,25 @@ export class AuthService {
       user = await User.findOne({ email: email.toLowerCase().trim() });
     }
 
+    const isOwner = cleanPhone === '9936269347' || (email ? this.isAllowlistedAdmin(email) : false);
+
     if (!user) {
       // Create new customer account atomically
       user = await User.create({
         firebaseUid: `phone_${cleanPhone}`,
         email: email ? email.toLowerCase().trim() : `${cleanPhone}@kanhaiyastore.local`,
-        displayName: displayName?.trim() || 'Valued Customer',
+        displayName: displayName?.trim() || (isOwner ? 'Store Owner' : 'Valued Customer'),
         phoneNumber: cleanPhone,
-        role: 'CUSTOMER',
+        role: isOwner ? 'ADMIN' : 'CUSTOMER',
         isActive: true,
         lastLoginAt: new Date(),
       });
-      logger.info(`New customer registered with phone: ${cleanPhone}`);
+      logger.info(`New user registered with phone: ${cleanPhone} (Role: ${user.role})`);
     } else {
       user.lastLoginAt = new Date();
+      if (isOwner && user.role !== 'ADMIN') {
+        user.role = 'ADMIN';
+      }
       if (!user.phoneNumber) {
         user.phoneNumber = cleanPhone;
       }

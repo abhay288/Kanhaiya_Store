@@ -2,13 +2,13 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, UserCredential } from 'firebase/auth';
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyAWYrTiuHh5nD5qzmCMG8rvtJT8mXvzA30",
-  authDomain: "kanhaiya-general-store.firebaseapp.com",
-  projectId: "kanhaiya-general-store",
-  storageBucket: "kanhaiya-general-store.firebasestorage.app",
-  messagingSenderId: "359309992004",
-  appId: "1:359309992004:web:d4d37514f4b371bb12dc11",
-  measurementId: "G-N1QQ168WD2",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAX6EKTDx4gL09YotiAdJrlC4UbI26vew0",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "kanhaiya-general-store.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "kanhaiya-general-store",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "kanhaiya-general-store.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "359309992004",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:359309992004:web:d4d37514f4b371bb12dc11",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-N1QQ168WD2",
 };
 
 // Initialize Firebase once

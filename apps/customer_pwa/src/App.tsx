@@ -11,6 +11,7 @@ import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { Category, Product } from './types';
 import { WifiOff } from 'lucide-react';
 
@@ -20,6 +21,7 @@ export const App: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export const App: React.FC = () => {
     setSearchQuery('');
     setActiveTab('categories');
     setSelectedProduct(null);
+    setIsAdminOpen(false);
   };
 
   const handleSelectProduct = (product: Product) => {
@@ -55,9 +58,19 @@ export const App: React.FC = () => {
     setSearchQuery(query || '');
     setActiveTab('categories');
     setSelectedProduct(null);
+    setIsAdminOpen(false);
   };
 
   const renderMainContent = () => {
+    // If Admin Console is open
+    if (isAdminOpen) {
+      return (
+        <AdminDashboardPage
+          onBack={() => setIsAdminOpen(false)}
+        />
+      );
+    }
+
     // If a product detail is open
     if (selectedProduct) {
       return (
@@ -117,7 +130,7 @@ export const App: React.FC = () => {
       case 'orders':
         return <OrdersPage />;
       case 'profile':
-        return <ProfilePage />;
+        return <ProfilePage onOpenAdmin={() => setIsAdminOpen(true)} />;
       default:
         return null;
     }
@@ -133,20 +146,21 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        <Header />
-        <InstallBanner />
+        {!isAdminOpen && <Header />}
+        {!isAdminOpen && <InstallBanner />}
 
         <main className="main-content">
           {renderMainContent()}
         </main>
 
-        {!isCheckoutOpen && !selectedProduct && (
+        {!isCheckoutOpen && !selectedProduct && !isAdminOpen && (
           <BottomNav
             activeTab={activeTab}
             onTabChange={(tab) => {
               setActiveTab(tab);
               setSelectedProduct(null);
               setIsCheckoutOpen(false);
+              setIsAdminOpen(false);
               if (tab !== 'categories') setSelectedCategory(null);
             }}
           />
