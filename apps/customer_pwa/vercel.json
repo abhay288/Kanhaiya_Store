@@ -12,6 +12,14 @@
       "destination": "/privacy.html"
     },
     {
+      "source": "/delete-account",
+      "destination": "/delete-account.html"
+    },
+    {
+      "source": "/account-deletion",
+      "destination": "/delete-account.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

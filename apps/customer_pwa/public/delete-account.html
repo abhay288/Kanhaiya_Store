@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account & Data Deletion — Kanhaiya General Store</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    :root {
+      --primary: #15803d;
+      --primary-dark: #166534;
+      --surface: #ffffff;
+      --bg: #f8fafc;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border: #e2e8f0;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 28px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    header {
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .brand img {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+    }
+
+    .brand h1 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .meta-box {
+      background-color: #f1f5f9;
+      border-left: 4px solid var(--primary);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 24px;
+      font-size: 0.85rem;
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-top: 24px;
+      margin-bottom: 10px;
+    }
+
+    p, ul, ol {
+      font-size: 0.92rem;
+      color: #334155;
+      margin-bottom: 12px;
+    }
+
+    ul, ol {
+      padding-left: 24px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    .delete-action-card {
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 24px 0;
+      text-align: center;
+    }
+
+    .delete-action-card h3 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--danger);
+      margin-bottom: 8px;
+    }
+
+    .btn-delete {
+      display: inline-block;
+      background-color: var(--danger);
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.92rem;
+      margin-top: 10px;
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+    }
+
+    .btn-delete:hover {
+      background-color: #b91c1c;
+    }
+
+    .info-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+
+    .info-card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 6px;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <img src="/logo.png" alt="Kanhaiya General Store Logo" onerror="this.style.display='none'">
+        <div>
+          <h1>Kanhaiya General Store</h1>
+          <p class="subtitle">Account & Data Deletion Request</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="meta-box">
+      <strong>Application:</strong> Kanhaiya General Store<br>
+      <strong>Android Package:</strong> com.kanhaiya.store.customer_flutter<br>
+      <strong>Store Location:</strong> Fatehpur Roshnai, Kanpur D. UP, India<br>
+      <strong>Support Email:</strong> kanhaiyaastore@gmail.com | <strong>Helpline:</strong> +91 9936269347
+    </div>
+
+    <section>
+      <h2>Account & User Data Deletion Policy</h2>
+      <p>
+        In compliance with <strong>Google Play User Data & Account Deletion Policy</strong>, customers of Kanhaiya General Store have the right to request the permanent deletion of their account and associated personal data at any time.
+      </p>
+    </section>
+
+    <!-- Direct Request Box -->
+    <div class="delete-action-card">
+      <h3>Submit an Account Deletion Request</h3>
+      <p style="font-size: 0.88rem; color: #7f1d1d; margin-bottom: 6px;">
+        Click below to send an automated deletion request directly to store management:
+      </p>
+      <a 
+        class="btn-delete"
+        href="mailto:kanhaiyaastore@gmail.com?subject=Account%20Deletion%20Request%20-%20Kanhaiya%20General%20Store&body=Dear%20Kanhaiya%20General%20Store%20Team%2C%0A%0APlease%20permanently%20delete%20my%20account%20and%20personal%20data.%0A%0AMy%20Registered%20Mobile%20Number%3A%20%0AMy%20Name%3A%20%0AMy%20Email%20(if%20any)%3A%20%0A%0AThank%20you."
+      >
+        ✉️ Request Account Deletion via Email
+      </a>
+      <p style="font-size: 0.78rem; color: #991b1b; margin-top: 10px;">
+        Or call/WhatsApp our helpline at <strong>+91 9936269347</strong> with your registered mobile number.
+      </p>
+    </div>
+
+    <section>
+      <h2>How the Deletion Process Works</h2>
+      <ol>
+        <li><strong>Submit Request:</strong> You provide your registered 10-digit mobile number or Google account email.</li>
+        <li><strong>Verification:</strong> To safeguard against unauthorized deletion, our store team may verify ownership via SMS or phone confirmation.</li>
+        <li><strong>Data Removal:</strong> Once verified, your account credentials, profile details, and session tokens are permanently wiped from our database within <strong>7 business days</strong>.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>What Data is Deleted vs. Retained</h2>
+      <div class="info-card">
+        <h4>✅ Data That Will Be Permanently Deleted:</h4>
+        <ul style="margin-bottom: 0;">
+          <li>Your customer account profile (Name, Mobile Number, Email Address).</li>
+          <li>Authentication credentials and Firebase tokens.</li>
+          <li>Saved grocery carts and browsing preferences.</li>
+          <li>Push notification device tokens.</li>
+        </ul>
+      </div>
+
+      <div class="info-card">
+        <h4>📋 Data Retained for Legal Compliance:</h4>
+        <p style="font-size: 0.85rem; margin-bottom: 0;">
+          Historical financial transaction records, order logs, and generated retail invoices from past completed orders are retained solely to comply with applicable statutory, tax, and accounting record-keeping requirements in India. These retained records are not used for any marketing or ongoing profiling purposes.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Need Assistance?</h2>
+      <p>
+        If you have any questions regarding your privacy or data handling, please review our full <a href="/privacy-policy">Privacy Policy</a> or contact us directly:
+      </p>
+      <p style="font-size: 0.88rem;">
+        • <strong>Helpline & WhatsApp:</strong> <a href="tel:+919936269347">+91 9936269347</a><br>
+        • <strong>Email:</strong> <a href="mailto:kanhaiyaastore@gmail.com">kanhaiyaastore@gmail.com</a><br>
+        • <strong>Address:</strong> Fatehpur Roshnai, Kanpur D. UP, India
+      </p>
+    </section>
+
+    <footer>
+      &copy; 2026 Kanhaiya General Store. All rights reserved.
+    </footer>
+  </div>
+</body>
+</html>

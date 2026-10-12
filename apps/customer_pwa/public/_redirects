@@ -1,3 +1,5 @@
-/privacy         /privacy.html    200
-/privacy-policy  /privacy.html    200
-/*                /index.html      200
+/privacy         /privacy.html        200
+/privacy-policy  /privacy.html        200
+/delete-account  /delete-account.html 200
+/account-deletion /delete-account.html 200
+/*                /index.html          200
