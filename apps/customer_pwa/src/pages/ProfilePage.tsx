@@ -441,7 +441,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
           <span>Support: kanhaiyaastore@gmail.com</span>
         </div>
 
-        <div
+        <a
+          href="/privacy.html"
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -452,11 +455,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
             borderRadius: 'var(--radius-md)',
             fontSize: '0.85rem',
             fontWeight: 600,
+            color: 'var(--text-main)',
+            textDecoration: 'none',
           }}
         >
           <Shield size={18} color="var(--primary)" />
-          <span>Privacy & Security Assured</span>
-        </div>
+          <span>Privacy Policy & Security Terms ↗</span>
+        </a>
       </div>
     </div>
   );
