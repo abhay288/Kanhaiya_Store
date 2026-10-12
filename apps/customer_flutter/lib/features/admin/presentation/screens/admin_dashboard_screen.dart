@@ -1,15 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../data/admin_analytics_repository.dart';
+import '../../domain/models/analytics_models.dart';
+import 'admin_categories_screen.dart';
+import 'admin_product_edit_screen.dart';
+import 'admin_products_screen.dart';
+import 'admin_inventory_dashboard_screen.dart';
+import 'admin_orders_screen.dart';
+import 'admin_analytics_dashboard_screen.dart';
+import 'admin_reports_screen.dart';
+import 'admin_customers_screen.dart';
+import 'admin_store_settings_screen.dart';
 
-class AdminDashboardScreen extends ConsumerWidget {
+class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
+  AnalyticsOverviewModel? _metrics;
+  bool _isLoadingMetrics = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLiveMetrics();
+  }
+
+  Future<void> _fetchLiveMetrics() async {
+    try {
+      final repo = ref.read(adminAnalyticsRepositoryProvider);
+      final data = await repo.getOverview('today');
+      if (mounted) {
+        setState(() {
+          _metrics = data;
+          _isLoadingMetrics = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingMetrics = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
 
     // Double security assertion
@@ -42,101 +85,52 @@ class AdminDashboardScreen extends ConsumerWidget {
         ),
         backgroundColor: AppColors.onPrimaryContainer,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Store Operating Settings',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AdminStoreSettingsScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchLiveMetrics,
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Admin Identity Card
-            Container(
-              padding: const EdgeInsets.all(AppDimensions.md),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.shield, color: AppColors.secondary, size: 28),
-                  const SizedBox(width: AppDimensions.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          authState.user?.displayName ?? 'Admin Operator',
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                        ),
-                        Text(
-                          'Authenticated as: ${authState.user?.email}',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppDimensions.lg),
-
-            // Operational Metrics Grid
-            const Text(
-              'Store Live Metrics',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: AppDimensions.sm),
-
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.4,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              children: [
-                _buildMetricCard('Total Orders Today', '14', AppColors.primary),
-                _buildMetricCard('Pending WhatsApp QR', '3', AppColors.warning),
-                _buildMetricCard('Revenue Today', CurrencyFormatter.format(8450), AppColors.secondary),
-                _buildMetricCard('Low Stock Items', '2', AppColors.error),
-              ],
-            ),
-            const SizedBox(height: AppDimensions.xl),
-
-            // Pending Approvals Section
-            const Text(
-              'Pending Payment Verifications (WhatsApp QR)',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: AppDimensions.sm),
-
-            Card(
-              child: Padding(
+      body: RefreshIndicator(
+        onRefresh: _fetchLiveMetrics,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppDimensions.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Admin Identity Card
+              Container(
                 padding: const EdgeInsets.all(AppDimensions.md),
-                child: Column(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
                   children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const CircleAvatar(
-                        backgroundColor: AppColors.secondaryContainer,
-                        child: Icon(Icons.qr_code, color: AppColors.secondary),
-                      ),
-                      title: const Text('Order KS-202610-0094', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                      subtitle: const Text('Amount: ₹382 • Ref: UPI/AXIS/928410', style: TextStyle(fontSize: 11)),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    const Icon(Icons.shield, color: AppColors.secondary, size: 28),
+                    const SizedBox(width: AppDimensions.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.check_circle, color: AppColors.success),
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Payment verified & order confirmed')),
-                              );
-                            },
+                          Text(
+                            authState.user?.displayName ?? 'Admin Operator',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.cancel, color: AppColors.error),
-                            onPressed: () {},
+                          Text(
+                            'Authenticated as: ${authState.user?.email}',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                           ),
                         ],
                       ),
@@ -144,38 +138,314 @@ class AdminDashboardScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: AppDimensions.xl),
+              const SizedBox(height: AppDimensions.md),
 
-            // Inventory & Store Controls
-            const Text(
-              'Operational Controls',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: AppDimensions.sm),
-
-            Card(
-              child: Column(
+              // Operational Metrics Grid (Live Data from Phase 8 API)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SwitchListTile(
-                    value: true,
-                    activeThumbColor: AppColors.primary,
-                    title: const Text('Store Open for Online Orders', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    subtitle: const Text('Customers can place orders during store hours', style: TextStyle(fontSize: 11)),
-                    onChanged: (val) {},
+                  const Text('Today\'s Store Pulse', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                  if (_isLoadingMetrics)
+                    const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
+                ],
+              ),
+              const SizedBox(height: AppDimensions.sm),
+
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: 1.4,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                children: [
+                  _buildMetricCard(
+                    'Orders Today',
+                    _metrics != null ? '${_metrics!.ordersToday}' : '...',
+                    AppColors.primary,
                   ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.inventory, color: AppColors.primary),
-                    title: const Text('Quick Stock Adjustment', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    subtitle: const Text('Update chakki atta, oil & dal stock quantities', style: TextStyle(fontSize: 11)),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 12),
-                    onTap: () {},
+                  _buildMetricCard(
+                    'Awaiting Action',
+                    _metrics != null ? '${_metrics!.awaitingConfirmation}' : '...',
+                    AppColors.warning,
+                  ),
+                  _buildMetricCard(
+                    'Collected Today',
+                    _metrics != null ? CurrencyFormatter.format(_metrics!.verifiedPayments) : '...',
+                    AppColors.secondary,
+                  ),
+                  _buildMetricCard(
+                    'Low / Out Stock',
+                    _metrics != null ? '${_metrics!.lowStockCount + _metrics!.outOfStockCount}' : '...',
+                    AppColors.error,
                   ),
                 ],
               ),
+              const SizedBox(height: AppDimensions.lg),
+
+              // Section 1: Analytics & Reports (Phase 8)
+              const Text(
+                'Analytics, Reports & Settings (Phase 8)',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionTile(
+                      context,
+                      title: 'Business Analytics',
+                      subtitle: 'KPIs, sales trends & payment channels',
+                      icon: Icons.insights_outlined,
+                      color: AppColors.primary,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AdminAnalyticsDashboardScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildActionTile(
+                      context,
+                      title: 'Store Reports & Audits',
+                      subtitle: 'Product ranking, stock replenishment & CSV',
+                      icon: Icons.assessment_outlined,
+                      color: Colors.indigo,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AdminReportsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionTile(
+                      context,
+                      title: 'Customer Directory',
+                      subtitle: 'Customer spend & lifetime order history',
+                      icon: Icons.people_outline,
+                      color: AppColors.accent,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AdminCustomersScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildActionTile(
+                      context,
+                      title: 'Store Settings',
+                      subtitle: 'Delivery rules, checkout, alerts & GSTIN',
+                      icon: Icons.tune_outlined,
+                      color: Colors.teal.shade700,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AdminStoreSettingsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDimensions.lg),
+
+              // Section 2: Order Fulfillment & Invoices (Phase 7)
+              const Text(
+                'Order Fulfillment & Invoices (Phase 7)',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: AppColors.primary,
+                    child: Icon(Icons.assignment_outlined, color: Colors.white, size: 22),
+                  ),
+                  title: const Text(
+                    'Order Operations Dashboard',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary),
+                  ),
+                  subtitle: const Text(
+                    'Manage fulfillment lifecycle, verify WhatsApp QR payments, collect COD & issue invoices',
+                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AdminOrdersScreen()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: AppDimensions.lg),
+
+              // Section 3: Catalog & Inventory Management Center (Phase 3 & 4)
+              const Text(
+                'Catalog & Inventory Management (Phase 3 & 4)',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionTile(
+                      context,
+                      title: 'Manage Products',
+                      subtitle: 'CRUD, Cloudinary gallery, pricing & stock',
+                      icon: Icons.inventory_2_outlined,
+                      color: AppColors.primary,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildActionTile(
+                      context,
+                      title: 'Manage Categories',
+                      subtitle: 'Taxonomy, subcategories & icon imagery',
+                      icon: Icons.category_outlined,
+                      color: AppColors.accent,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AdminCategoriesScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Inventory & Stock Control Card (Phase 4)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
+                ),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: AppColors.accent,
+                    child: Icon(Icons.warehouse_outlined, color: Colors.white, size: 20),
+                  ),
+                  title: const Text(
+                    'Inventory & Stock Control (Phase 4)',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
+                  ),
+                  subtitle: const Text(
+                    'Real-time stock levels, movement audits, receipts, damaged goods & low-stock alerts',
+                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.accent),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AdminInventoryDashboardScreen()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Quick Add Product Card
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                ),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: AppColors.primary,
+                    child: Icon(Icons.add, color: Colors.white, size: 20),
+                  ),
+                  title: const Text(
+                    'Add New Catalog Item',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.onPrimaryContainer),
+                  ),
+                  subtitle: const Text(
+                    'Upload images to Cloudinary, set selling price, pack size & stock',
+                    style: TextStyle(fontSize: 11, color: AppColors.primaryDark),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AdminProductEditScreen()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: AppDimensions.xl),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionTile(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimensions.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: color.withValues(alpha: 0.12),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

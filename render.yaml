@@ -1,0 +1,59 @@
+# Render Blueprint Specification for Kanhaiya General Store Backend API
+# Documentation: https://render.com/docs/blueprint-spec
+
+version: "1"
+
+services:
+  - type: web
+    name: kanhaiya-store-api
+    runtime: node
+    region: singapore # Closest region to India for optimal latency
+    plan: starter # Starter plan recommended for production (persistent instance, no cold starts)
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "5000"
+      - key: MONGODB_URI
+        sync: false # Set securely in Render Dashboard (MongoDB Atlas TLS connection string)
+      - key: CORS_ORIGIN
+        sync: false # e.g. https://kanhaiyastore.com,https://kanhaiya-store.netlify.app
+      - key: JWT_SECRET
+        generateWithLength: 32 # Render auto-generates high-entropy secret if not supplied
+      - key: ADMIN_ALLOWED_EMAILS
+        value: kanhaiyaastore@gmail.com
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: STORE_NAME
+        value: "Kanhaiya General Store"
+      - key: STORE_PHONE
+        value: "9936269347"
+      - key: STORE_WHATSAPP
+        value: "9936269347"
+      - key: STORE_UPI_ID
+        value: "kanhaiyastore@upi"
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

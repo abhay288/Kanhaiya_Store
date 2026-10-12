@@ -7,6 +7,7 @@ export interface IUser extends Document {
   email: string;
   displayName: string;
   photoURL?: string;
+  phoneNumber?: string;
   role: UserRole;
   isActive: boolean;
   lastLoginAt: Date;
@@ -36,6 +37,11 @@ const UserSchema = new Schema<IUser>(
       required: true,
       trim: true,
       default: 'Valued Customer',
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+      default: '',
     },
     photoURL: {
       type: String,
@@ -71,6 +77,7 @@ UserSchema.methods.toSafeProfile = function () {
     email: this.email,
     displayName: this.displayName,
     photoURL: this.photoURL,
+    phoneNumber: this.phoneNumber || '',
     role: this.role,
     isActive: this.isActive,
     lastLoginAt: this.lastLoginAt,

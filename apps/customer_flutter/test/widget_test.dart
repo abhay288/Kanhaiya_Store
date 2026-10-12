@@ -11,8 +11,8 @@ void main() {
     );
 
     // Verify splash screen renders branding
-    expect(find.text('KANHAIYA STORE'), findsOneWidget);
-    expect(find.text('Fresh Essentials • Wholesale Rates'), findsOneWidget);
+    expect(find.text('Kanhaiya General Store'), findsOneWidget);
+    expect(find.text('In-Store Purchase & Pickup Only'), findsOneWidget);
 
     // Let the splash navigation timer settle
     await tester.pump(const Duration(milliseconds: 1500));

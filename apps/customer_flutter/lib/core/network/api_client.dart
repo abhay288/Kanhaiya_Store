@@ -1,10 +1,8 @@
 import 'package:dio/dio.dart';
+import '../config/env_config.dart';
 
 class ApiClient {
-  static const String defaultBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:4000/api/v1',
-  );
+  static const String defaultBaseUrl = EnvConfig.apiBaseUrl;
 
   final Dio dio;
   String? _authToken;
@@ -13,8 +11,8 @@ class ApiClient {
       : dio = Dio(
           BaseOptions(
             baseUrl: baseUrl ?? defaultBaseUrl,
-            connectTimeout: const Duration(seconds: 10),
-            receiveTimeout: const Duration(seconds: 10),
+            connectTimeout: const Duration(seconds: 15),
+            receiveTimeout: const Duration(seconds: 15),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',

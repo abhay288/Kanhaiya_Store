@@ -10,8 +10,10 @@ export async function connectDatabase(): Promise<boolean> {
   try {
     mongoose.set('strictQuery', true);
     await mongoose.connect(env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 3000,
-      connectTimeoutMS: 3000,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+      maxPoolSize: 10,
+      minPoolSize: 2,
     });
     isConnected = true;
     logger.info('Connected to MongoDB database');

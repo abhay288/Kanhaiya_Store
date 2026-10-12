@@ -18,6 +18,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -36,6 +37,7 @@ export const App: React.FC = () => {
 
   const handleSelectCategory = (category: Category) => {
     setSelectedCategory(category);
+    setSearchQuery('');
     setActiveTab('categories');
     setSelectedProduct(null);
   };
@@ -48,6 +50,13 @@ export const App: React.FC = () => {
     setSelectedProduct(null);
   };
 
+  const handleViewAllProducts = (query?: string) => {
+    setSelectedCategory(null);
+    setSearchQuery(query || '');
+    setActiveTab('categories');
+    setSelectedProduct(null);
+  };
+
   const renderMainContent = () => {
     // If a product detail is open
     if (selectedProduct) {
@@ -55,6 +64,7 @@ export const App: React.FC = () => {
         <ProductDetailPage
           product={selectedProduct}
           onBack={handleBackFromDetail}
+          onSelectProduct={handleSelectProduct}
         />
       );
     }
@@ -79,19 +89,20 @@ export const App: React.FC = () => {
           <HomePage
             onSelectCategory={handleSelectCategory}
             onSelectProduct={handleSelectProduct}
-            onViewAllProducts={() => {
-              setSelectedCategory(null);
-              setActiveTab('categories');
-            }}
+            onViewAllProducts={handleViewAllProducts}
           />
         );
       case 'categories':
-        if (selectedCategory) {
+        if (selectedCategory || searchQuery) {
           return (
             <ProductListPage
               selectedCategory={selectedCategory}
+              initialSearch={searchQuery}
               onSelectProduct={handleSelectProduct}
-              onBack={() => setSelectedCategory(null)}
+              onBack={() => {
+                setSelectedCategory(null);
+                setSearchQuery('');
+              }}
             />
           );
         }

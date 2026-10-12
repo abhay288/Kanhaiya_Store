@@ -8,7 +8,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ 
   title = 'Kanhaiya General Store', 
-  subtitle = 'Daily Essentials & Groceries • Wholesale Rates' 
+  subtitle = 'In-Store Purchase & Pickup Only • We do not deliver products' 
 }) => {
   return (
     <header className="store-header">
@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
       <a
-        href="tel:+919876543210"
+        href="tel:+919936269347"
         aria-label="Call Store"
         style={{
           display: 'flex',

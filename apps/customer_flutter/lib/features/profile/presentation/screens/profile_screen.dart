@@ -43,7 +43,7 @@ class ProfileScreen extends ConsumerWidget {
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                           ),
                           Text(
-                            user?.email ?? 'Sign in for order sync & addresses',
+                            user?.email ?? 'Sign in for in-store order pickup',
                             style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                           ),
                           if (user != null) ...[
@@ -103,17 +103,17 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.location_on_outlined, color: AppColors.primary),
-                    title: const Text('Saved Addresses', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    subtitle: const Text('Home: House 42, Main Bazar', style: TextStyle(fontSize: 11)),
+                    leading: const Icon(Icons.storefront_outlined, color: AppColors.primary),
+                    title: const Text('Store Location & Counter', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    subtitle: const Text('Fatehpur Roshnai, Kanpur D. UP • In-Store Pickup', style: TextStyle(fontSize: 11)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                     onTap: () {},
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.call_outlined, color: AppColors.primary),
-                    title: const Text('Store Helpline & WhatsApp', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    subtitle: const Text('+91 98765 43210', style: TextStyle(fontSize: 11)),
+                    title: const Text('Store Helpline & Support', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    subtitle: const Text('+91 9936269347 • kanhaiyaastore@gmail.com', style: TextStyle(fontSize: 11)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                     onTap: () {},
                   ),

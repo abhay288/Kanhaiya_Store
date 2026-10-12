@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, MapPin, Shield, LogOut, CheckCircle, Server, UserCheck } from 'lucide-react';
+import { Phone, MapPin, Shield, LogOut, CheckCircle, Server, UserCheck, Mail } from 'lucide-react';
 import { apiClient, UserProfile } from '../api/client';
 import { signInWithGoogleWeb } from '../config/firebase';
 
@@ -54,7 +54,7 @@ export const ProfilePage: React.FC = () => {
     setLoading(true);
     setAuthMsg(null);
     try {
-      const email = role === 'ADMIN' ? 'admin@kanhaiyastore.com' : 'customer@example.com';
+      const email = role === 'ADMIN' ? 'kanhaiyaastore@gmail.com' : 'customer@example.com';
       const testToken = `test-token:${role}:${email}`;
       const res = await apiClient.authWithGoogle(testToken);
       setUser(res.data.user);
@@ -63,7 +63,7 @@ export const ProfilePage: React.FC = () => {
       // Fallback demo user if backend is not currently running locally
       const mockUser: UserProfile = {
         id: role === 'ADMIN' ? 'adm-pwa-01' : 'cust-pwa-01',
-        email: role === 'ADMIN' ? 'admin@kanhaiyastore.com' : 'abhay.kushwaha@example.com',
+        email: role === 'ADMIN' ? 'kanhaiyaastore@gmail.com' : 'abhay.kushwaha@example.com',
         displayName: role === 'ADMIN' ? 'Store Manager' : 'Abhay Kushwaha',
         role,
         isActive: true,
@@ -201,7 +201,7 @@ export const ProfilePage: React.FC = () => {
                 fontSize: '0.82rem',
               }}
             >
-              Simulate Store Admin Sign-In
+              Simulate Admin Sign-In (kanhaiyaastore@gmail.com)
             </button>
           </div>
         ) : (
@@ -237,7 +237,7 @@ export const ProfilePage: React.FC = () => {
           }}
         >
           <MapPin size={18} color="var(--primary)" />
-          <span>Saved Delivery Addresses (1)</span>
+          <span>Store Location: Fatehpur Roshnai, Kanpur D. UP</span>
         </div>
 
         <div
@@ -254,7 +254,24 @@ export const ProfilePage: React.FC = () => {
           }}
         >
           <Phone size={18} color="var(--primary)" />
-          <span>Store Helpline: +91 9876543210</span>
+          <span>Store Helpline: +91 9936269347</span>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '14px',
+            backgroundColor: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+          }}
+        >
+          <Mail size={18} color="var(--primary)" />
+          <span>Support: kanhaiyaastore@gmail.com</span>
         </div>
 
         <div
@@ -291,7 +308,7 @@ export const ProfilePage: React.FC = () => {
           <img src="/logo.png" alt="KGS Logo" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
           <strong>Kanhaiya General Store</strong>
         </div>
-        <p>Serving our neighborhood with fresh grains, pulses, dairy & packaged groceries since 2012.</p>
+        <p>In-store shopping & pickup only. We do not deliver products anywhere. Pure milk products, breads & packaged kirana groceries (No vegetables, fruits, or cooked food).</p>
         <p style={{ marginTop: '6px', color: 'var(--text-muted)' }}>
           Backend ID-Token verification & role provisioning enforced via MongoDB Atlas + Firebase Admin SDK.
         </p>

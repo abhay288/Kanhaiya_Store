@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/feedback_views.dart';
+import '../../../../core/widgets/product_card.dart';
 import '../../../cart/presentation/controllers/cart_controller.dart';
 import '../controllers/catalog_providers.dart';
 
@@ -12,7 +14,7 @@ final singleProductProvider = FutureProvider.family((ref, String id) async {
   return repo.getProductById(id);
 });
 
-class ProductDetailScreen extends ConsumerWidget {
+class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
 
   const ProductDetailScreen({
@@ -21,9 +23,17 @@ class ProductDetailScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final productAsync = ref.watch(singleProductProvider(productId));
+  ConsumerState<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
+  String? _selectedImageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final productAsync = ref.watch(singleProductProvider(widget.productId));
     final cart = ref.watch(cartProvider);
+    final relatedAsync = ref.watch(relatedProductsProvider(widget.productId));
 
     return productAsync.when(
       data: (product) {
@@ -39,6 +49,12 @@ class ProductDetailScreen extends ConsumerWidget {
 
         final inCartItem = cart.where((item) => item.product.id == product.id).firstOrNull;
         final inCartCount = inCartItem?.quantity ?? 0;
+        final isMaxStockReached = inCartCount >= product.stockQuantity;
+
+        final allImages = product.images.isNotEmpty
+            ? product.images.map((i) => i.url).toList()
+            : [product.imageUrl];
+        final currentImage = _selectedImageUrl ?? product.imageUrl;
 
         return Scaffold(
           appBar: AppBar(
@@ -49,20 +65,20 @@ class ProductDetailScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Product Image
+                // Product Image Container
                 Container(
                   height: 240,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                     border: Border.all(color: AppColors.border),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: product.imageUrl.isNotEmpty
+                  child: currentImage.isNotEmpty
                       ? Image.network(
-                          product.imageUrl,
-                          fit: BoxFit.cover,
+                          currentImage,
+                          fit: BoxFit.contain,
                           errorBuilder: (_, _, _) => const Center(
                             child: Icon(Icons.shopping_bag_outlined, size: 60, color: AppColors.textTertiary),
                           ),
@@ -71,29 +87,83 @@ class ProductDetailScreen extends ConsumerWidget {
                           child: Icon(Icons.shopping_bag_outlined, size: 60, color: AppColors.textTertiary),
                         ),
                 ),
-                const SizedBox(height: AppDimensions.lg),
+                const SizedBox(height: AppDimensions.sm),
 
-                // Category pill & Pack Size
+                // Thumbnails Gallery
+                if (allImages.length > 1) ...[
+                  SizedBox(
+                    height: 54,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: allImages.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (context, idx) {
+                        final imgUrl = allImages[idx];
+                        final isSelected = currentImage == imgUrl;
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedImageUrl = imgUrl),
+                          child: Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                              border: Border.all(
+                                color: isSelected ? AppColors.primary : AppColors.border,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Image.network(
+                              imgUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, _, _) => const Icon(Icons.image, size: 20),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                ],
+
+                // Category pill, Brand, & Pack Size
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryContainer,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        product.categoryName.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onPrimaryContainer,
+                    Row(
+                      children: [
+                        if (product.brand.isNotEmpty) ...[
+                          Text(
+                            product.brand.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.accent,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            product.categoryName.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onPrimaryContainer,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                     Text(
-                      'Unit: ${product.unit}',
+                      product.packSize.isNotEmpty ? product.packSize : 'Unit: ${product.unit}',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -149,6 +219,22 @@ class ProductDetailScreen extends ConsumerWidget {
                                 decoration: TextDecoration.lineThrough,
                               ),
                             ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentContainer,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${product.discountPercentage}% OFF',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.accent,
+                                ),
+                              ),
+                            ),
                           ],
                         ],
                       ),
@@ -179,7 +265,9 @@ class ProductDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  product.description,
+                  product.description.isNotEmpty
+                      ? product.description
+                      : 'Authentic daily kirana essentials curated for freshness and pure quality.',
                   style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
                 ),
                 const SizedBox(height: AppDimensions.xl),
@@ -204,6 +292,44 @@ class ProductDetailScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: AppDimensions.xl),
+
+                // Related Products
+                relatedAsync.when(
+                  data: (relatedList) {
+                    if (relatedList.isEmpty) return const SizedBox.shrink();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Similar in ${product.categoryName}',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: AppDimensions.md),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.65,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
+                          itemCount: relatedList.length,
+                          itemBuilder: (context, index) {
+                            final rel = relatedList[index];
+                            return ProductCard(
+                              product: rel,
+                              onTap: () => context.push('/product-detail/${rel.id}'),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
+                ),
               ],
             ),
           ),
@@ -215,7 +341,7 @@ class ProductDetailScreen extends ConsumerWidget {
                 border: Border(top: BorderSide(color: AppColors.border)),
               ),
               child: ElevatedButton.icon(
-                onPressed: product.inStock
+                onPressed: product.inStock && !isMaxStockReached
                     ? () {
                         ref.read(cartProvider.notifier).addToCart(product);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -228,9 +354,13 @@ class ProductDetailScreen extends ConsumerWidget {
                     : null,
                 icon: Icon(inCartCount > 0 ? Icons.check : Icons.shopping_bag_outlined),
                 label: Text(
-                  inCartCount > 0
-                      ? 'In Your Cart ($inCartCount) — Add Another'
-                      : 'Add to Cart • ${CurrencyFormatter.format(product.sellingPrice)}',
+                  !product.inStock
+                      ? 'Out of Stock'
+                      : isMaxStockReached
+                          ? 'Max Stock Reached ($inCartCount)'
+                          : inCartCount > 0
+                              ? 'In Your Cart ($inCartCount) — Add Another'
+                              : 'Add to Cart • ${CurrencyFormatter.format(product.sellingPrice)}',
                 ),
               ),
             ),
@@ -245,7 +375,7 @@ class ProductDetailScreen extends ConsumerWidget {
         appBar: AppBar(title: const Text('Error')),
         body: ErrorView(
           message: '$err',
-          onRetry: () => ref.invalidate(singleProductProvider(productId)),
+          onRetry: () => ref.invalidate(singleProductProvider(widget.productId)),
         ),
       ),
     );

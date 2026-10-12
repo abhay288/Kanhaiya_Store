@@ -10,7 +10,7 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:5173,http://localhost:3000'),
   
   JWT_SECRET: z.string().default('kanhaiya_store_jwt_secret_dev_key_2026'),
-  ADMIN_ALLOWED_EMAILS: z.string().default('admin@kanhaiyastore.com,mauryaabhay518@gmail.com'),
+  ADMIN_ALLOWED_EMAILS: z.string().default('kanhaiyaastore@gmail.com'),
   
   FIREBASE_PROJECT_ID: z.string().default('dummy-firebase-project'),
   FIREBASE_CLIENT_EMAIL: z.string().default('dummy@example.iam.gserviceaccount.com'),
@@ -21,8 +21,8 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().default('dummy_secret'),
 
   STORE_NAME: z.string().default('Kanhaiya General Store'),
-  STORE_PHONE: z.string().default('+919876543210'),
-  STORE_WHATSAPP: z.string().default('+919876543210'),
+  STORE_PHONE: z.string().default('9936269347'),
+  STORE_WHATSAPP: z.string().default('9936269347'),
   STORE_UPI_ID: z.string().default('kanhaiyastore@upi'),
 });
 

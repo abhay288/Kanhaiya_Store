@@ -80,6 +80,20 @@ class ProductCard extends ConsumerWidget {
               ),
               const SizedBox(height: AppDimensions.sm),
 
+              // Brand
+              if (product.brand.isNotEmpty) ...[
+                Text(
+                  product.brand.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.accent,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 1),
+              ],
+
               // Product Name
               Text(
                 product.name,
@@ -96,7 +110,7 @@ class ProductCard extends ConsumerWidget {
 
               // Unit
               Text(
-                product.unit,
+                product.packSize.isNotEmpty ? product.packSize : product.unit,
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textSecondary,

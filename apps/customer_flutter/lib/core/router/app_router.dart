@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/admin/presentation/screens/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/admin_categories_screen.dart';
+import '../../features/admin/presentation/screens/admin_product_edit_screen.dart';
+import '../../features/admin/presentation/screens/admin_products_screen.dart';
+import '../../features/admin/presentation/screens/admin_inventory_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/admin_orders_screen.dart';
+import '../../features/admin/presentation/screens/admin_order_details_screen.dart';
+import '../../features/admin/presentation/screens/admin_analytics_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/admin_reports_screen.dart';
+import '../../features/admin/presentation/screens/admin_customers_screen.dart';
+import '../../features/admin/presentation/screens/admin_store_settings_screen.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/auth/presentation/screens/google_signin_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
@@ -71,7 +81,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CheckoutScreen(),
       ),
 
-      // Protected Admin Dashboard Route
+      // Protected Admin Dashboard Routes
       GoRoute(
         path: '/admin',
         redirect: (context, state) {
@@ -82,6 +92,60 @@ final routerProvider = Provider<GoRouter>((ref) {
           return null;
         },
         builder: (context, state) => const AdminDashboardScreen(),
+        routes: [
+          GoRoute(
+            path: 'products',
+            builder: (context, state) => const AdminProductsScreen(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => const AdminProductEditScreen(),
+              ),
+              GoRoute(
+                path: 'edit/:id',
+                builder: (context, state) => AdminProductEditScreen(
+                  productId: state.pathParameters['id'],
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'categories',
+            builder: (context, state) => const AdminCategoriesScreen(),
+          ),
+          GoRoute(
+            path: 'inventory',
+            builder: (context, state) => const AdminInventoryDashboardScreen(),
+          ),
+          GoRoute(
+            path: 'orders',
+            builder: (context, state) => const AdminOrdersScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) => AdminOrderDetailsScreen(
+                  orderId: state.pathParameters['id'] ?? '',
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: 'analytics',
+            builder: (context, state) => const AdminAnalyticsDashboardScreen(),
+          ),
+          GoRoute(
+            path: 'reports',
+            builder: (context, state) => const AdminReportsScreen(),
+          ),
+          GoRoute(
+            path: 'customers',
+            builder: (context, state) => const AdminCustomersScreen(),
+          ),
+          GoRoute(
+            path: 'settings',
+            builder: (context, state) => const AdminStoreSettingsScreen(),
+          ),
+        ],
       ),
 
       // Main Store Shell (Tabs: Home, Categories, Cart, Orders, Profile)

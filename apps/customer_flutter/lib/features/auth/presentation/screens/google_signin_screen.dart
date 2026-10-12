@@ -51,7 +51,7 @@ class GoogleSignInScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppDimensions.xl),
               const Text(
-                'Welcome to Kanhaiya Store',
+                'Welcome to Kanhaiya General Store',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -61,7 +61,7 @@ class GoogleSignInScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppDimensions.sm),
               const Text(
-                'Sign in with Google to sync your grocery orders, save delivery addresses, and track real-time deliveries.',
+                'Sign in with Google to view order history and pickup your packaged groceries at our store.',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
@@ -80,7 +80,7 @@ class GoogleSignInScreen extends ConsumerWidget {
                   border: Border.all(color: AppColors.border),
                 ),
                 child: const Text(
-                  'Phase 2 Authentication: Integrates with backend POST /api/v1/auth/google. Use the quick credentials below to verify customer or store administrator routing in offline dev mode.',
+                  'Phase 2 Authentication: Integrates with backend POST /api/v1/auth/google. Store admin access is strictly authorized for kanhaiyaastore@gmail.com.',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -123,7 +123,7 @@ class GoogleSignInScreen extends ConsumerWidget {
                         }
                       },
                 icon: const Icon(Icons.admin_panel_settings_outlined),
-                label: const Text('Sign In as Store Admin'),
+                label: const Text('Admin Login (kanhaiyaastore@gmail.com)'),
               ),
               const SizedBox(height: AppDimensions.md),
             ],

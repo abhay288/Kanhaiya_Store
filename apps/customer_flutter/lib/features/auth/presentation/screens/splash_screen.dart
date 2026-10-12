@@ -54,20 +54,20 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: AppDimensions.xl),
             const Text(
-              'KANHAIYA STORE',
+              'Kanhaiya General Store',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 2,
+                letterSpacing: 1.2,
                 color: Colors.white,
               ),
             ),
             const SizedBox(height: AppDimensions.xs),
             const Text(
-              'Fresh Essentials • Wholesale Rates',
+              'In-Store Purchase & Pickup Only',
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w400,
+                fontWeight: FontWeight.w500,
                 color: Colors.white70,
               ),
             ),

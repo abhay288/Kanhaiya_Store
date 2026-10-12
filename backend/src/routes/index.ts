@@ -11,6 +11,9 @@ import { notificationRouter } from '../modules/notifications/notification.router
 import { adminRouter } from '../modules/admin/admin.router';
 import { settingsRouter } from '../modules/settings/settings.router';
 
+import { inventoryRouter } from '../modules/inventory/inventory.router';
+import { addressRouter } from '../modules/addresses/address.router';
+
 const router = Router();
 
 // Base health and monitoring
@@ -20,8 +23,10 @@ router.use(healthRouter);
 router.use('/auth', authRoutes);
 router.use('/categories', categoryRouter);
 router.use('/products', productRouter);
+router.use('/inventory', inventoryRouter);
 router.use('/cart', cartRouter);
 router.use('/orders', orderRouter);
+router.use('/addresses', addressRouter);
 router.use('/payments', paymentRouter);
 router.use('/invoices', invoiceRouter);
 router.use('/notifications', notificationRouter);

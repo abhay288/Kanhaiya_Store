@@ -8,9 +8,10 @@ class EnvConfig {
     defaultValue: 'http://10.0.2.2:5000/api/v1',
   );
 
-  static const String storePhone = '+91 98765 43210';
-  static const String storeWhatsApp = '+91 98765 43210';
-  static const String storeAddress = 'Shop #14, Main Mandi Road, Near Gandhi Chowk';
+  static const String storePhone = '9936269347';
+  static const String storeWhatsApp = '9936269347';
+  static const String storeAddress = 'Fatehpur Roshnai, Kanpur D. UP';
+  static const String supportEmail = 'kanhaiyaastore@gmail.com';
 
   // Development Flags
   static const bool useMockRepository = bool.fromEnvironment(

@@ -28,7 +28,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({ onSelectCategory
         Store Categories
       </h2>
       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-        Browse through our full inventory of fresh foods & essentials
+        Packaged groceries, milk products & breads (In-store pickup only • No vegetables, fruits, or cooked food)
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

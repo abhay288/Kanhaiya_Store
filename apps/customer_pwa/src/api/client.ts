@@ -2,6 +2,7 @@ export interface UserProfile {
   id: string;
   email: string;
   displayName: string;
+  phoneNumber?: string;
   photoURL?: string | null;
   role: 'CUSTOMER' | 'ADMIN';
   isActive: boolean;
@@ -82,6 +83,24 @@ class ApiClient {
       this.setToken(res.data.token);
     }
     return res;
+  }
+
+  async quickLogin(phone: string, displayName?: string, email?: string): Promise<ApiResponse<AuthResponseData>> {
+    const res = await this.request<AuthResponseData>('/auth/quick-login', {
+      method: 'POST',
+      body: JSON.stringify({ phone, displayName, email }),
+    });
+    if (res.data?.token) {
+      this.setToken(res.data.token);
+    }
+    return res;
+  }
+
+  async updateProfile(data: { displayName?: string; phoneNumber?: string }): Promise<ApiResponse<UserProfile>> {
+    return this.request<UserProfile>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async getMe(): Promise<ApiResponse<{ user: UserProfile }>> {

@@ -2,6 +2,26 @@ import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate';
 import { authorizeAdmin } from '../../middleware/authorize-admin';
 import { sendSuccess } from '../../utils/apiResponse';
+import {
+  upload,
+  uploadSingleImage,
+  uploadMultipleImages,
+  getSignedUploadParams,
+  deleteImage,
+} from './upload.controller';
+
+import {
+  getOverview,
+  getSalesAnalytics,
+  getProductReports,
+  getInventoryReports,
+  getOrderReports,
+  getCustomers,
+  getCustomerDetails,
+  exportReport,
+  getStoreSettingsAdmin,
+  updateStoreSettingsAdmin,
+} from './analytics.controller';
 
 const router = Router();
 
@@ -19,7 +39,26 @@ router.get('/test', authenticate, authorizeAdmin, (req, res) => {
   );
 });
 
-// Operational metrics placeholder for Phase 6
+// Phase 8: Business Analytics & KPIs
+router.get('/analytics/overview', authenticate, authorizeAdmin, getOverview);
+router.get('/analytics/sales', authenticate, authorizeAdmin, getSalesAnalytics);
+
+// Phase 8: Comprehensive Reports
+router.get('/reports/products', authenticate, authorizeAdmin, getProductReports);
+router.get('/reports/inventory', authenticate, authorizeAdmin, getInventoryReports);
+router.get('/reports/orders', authenticate, authorizeAdmin, getOrderReports);
+router.get('/reports/payments', authenticate, authorizeAdmin, getOrderReports);
+router.get('/reports/export/:reportType', authenticate, authorizeAdmin, exportReport);
+
+// Phase 8: Customer Management
+router.get('/customers', authenticate, authorizeAdmin, getCustomers);
+router.get('/customers/:id', authenticate, authorizeAdmin, getCustomerDetails);
+
+// Phase 8: Store Configuration
+router.get('/settings', authenticate, authorizeAdmin, getStoreSettingsAdmin);
+router.patch('/settings', authenticate, authorizeAdmin, updateStoreSettingsAdmin);
+
+// Operational metrics
 router.get('/metrics', authenticate, authorizeAdmin, (_req, res) => {
   return sendSuccess(
     res,
@@ -33,4 +72,36 @@ router.get('/metrics', authenticate, authorizeAdmin, (_req, res) => {
   );
 });
 
+// Cloudinary Image Management (Strictly Admin only)
+router.post(
+  '/upload',
+  authenticate,
+  authorizeAdmin,
+  upload.single('image'),
+  uploadSingleImage
+);
+
+router.post(
+  '/upload-multiple',
+  authenticate,
+  authorizeAdmin,
+  upload.array('images', 10),
+  uploadMultipleImages
+);
+
+router.post(
+  '/upload/sign',
+  authenticate,
+  authorizeAdmin,
+  getSignedUploadParams
+);
+
+router.delete(
+  '/upload/:publicId(*)',
+  authenticate,
+  authorizeAdmin,
+  deleteImage
+);
+
 export const adminRouter = router;
+

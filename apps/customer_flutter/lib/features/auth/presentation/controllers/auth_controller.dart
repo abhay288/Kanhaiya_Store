@@ -10,6 +10,7 @@ class UserModel {
   final String id;
   final String email;
   final String displayName;
+  final String? phoneNumber;
   final UserRole role;
   final String? photoURL;
 
@@ -17,6 +18,7 @@ class UserModel {
     required this.id,
     required this.email,
     required this.displayName,
+    this.phoneNumber,
     required this.role,
     this.photoURL,
   });
@@ -24,12 +26,15 @@ class UserModel {
   bool get isAdmin => role == UserRole.admin;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final email = (json['email'] as String? ?? '').toLowerCase().trim();
     final roleStr = (json['role'] as String? ?? 'CUSTOMER').toUpperCase();
+    final isAdmin = roleStr == 'ADMIN' && (email == 'kanhaiyaastore@gmail.com' || email.isEmpty);
     return UserModel(
       id: json['id'] as String? ?? json['_id'] as String? ?? '',
-      email: json['email'] as String? ?? '',
+      email: email,
       displayName: json['displayName'] as String? ?? 'Valued Customer',
-      role: roleStr == 'ADMIN' ? UserRole.admin : UserRole.customer,
+      phoneNumber: json['phoneNumber'] as String?,
+      role: isAdmin ? UserRole.admin : UserRole.customer,
       photoURL: json['photoURL'] as String?,
     );
   }
@@ -100,6 +105,50 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  /// Sign in or auto-create account using Indian mobile number
+  Future<bool> signInWithPhone({required String phone, String? displayName}) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final response = await apiClient.dio.post(
+        '/auth/quick-login',
+        data: {
+          'phone': phone,
+          if (displayName != null && displayName.isNotEmpty) 'displayName': displayName,
+        },
+      );
+
+      final data = response.data['data'] as Map<String, dynamic>;
+      final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
+      final token = data['token'] as String;
+
+      apiClient.setAuthToken(token);
+
+      state = AuthState(
+        user: user,
+        token: token,
+        isLoading: false,
+      );
+      return true;
+    } catch (e) {
+      // Mock / offline fallback
+      final user = UserModel(
+        id: 'cust-${DateTime.now().millisecondsSinceEpoch}',
+        email: '',
+        phoneNumber: phone,
+        displayName: displayName ?? 'Valued Customer',
+        role: UserRole.customer,
+      );
+      const token = 'mock-phone-session-token';
+      apiClient.setAuthToken(token);
+      state = const AuthState().copyWith(
+        user: user,
+        token: token,
+        isLoading: false,
+      );
+      return true;
+    }
+  }
+
   /// Sign in with demo mode when external OAuth credentials are not yet configured.
   Future<void> signInWithGoogleDemo({bool simulateAsAdmin = false}) async {
     state = const AuthState(isLoading: true);
@@ -109,7 +158,7 @@ class AuthNotifier extends Notifier<AuthState> {
       state = const AuthState(
         user: UserModel(
           id: 'adm-001',
-          email: 'admin@kanhaiyastore.com',
+          email: 'kanhaiyaastore@gmail.com',
           displayName: 'Store Manager (Admin)',
           role: UserRole.admin,
         ),

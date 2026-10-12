@@ -5,7 +5,9 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/widgets/feedback_views.dart';
 import '../../../../core/widgets/product_card.dart';
-import 'package:customer_flutter/features/catalog/presentation/controllers/catalog_providers.dart';
+import '../../../cart/presentation/controllers/cart_controller.dart';
+import '../../../catalog/presentation/controllers/catalog_providers.dart';
+import '../../../catalog/domain/models/product_model.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -13,7 +15,8 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(categoriesProvider);
-    final productsAsync = ref.watch(productsProvider(const ProductFilter()));
+    final collectionsAsync = ref.watch(collectionsProvider);
+    final cartItemCount = ref.watch(cartItemCountProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -31,7 +34,7 @@ class HomeScreen extends ConsumerWidget {
                     fit: BoxFit.contain,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 const Text(
                   'Kanhaiya General Store',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
@@ -39,12 +42,44 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
             const Text(
-              'Delivering to Main Bazar • 15-30 mins',
+              'In-Store Shopping Only • We do not deliver products anywhere',
               style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
           ],
         ),
         actions: [
+          // Persistent Cart badge action
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_bag_outlined),
+                onPressed: () => context.go('/cart'),
+              ),
+              if (cartItemCount > 0)
+                Positioned(
+                  right: 6,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      '$cartItemCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => context.push('/notifications'),
@@ -54,7 +89,7 @@ class HomeScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(categoriesProvider);
-          ref.invalidate(productsProvider);
+          ref.invalidate(collectionsProvider);
         },
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppDimensions.lg),
@@ -76,7 +111,7 @@ class HomeScreen extends ConsumerWidget {
                       Icon(Icons.search, color: AppColors.textTertiary, size: 20),
                       SizedBox(width: 10),
                       Text(
-                        'Search atta, dal, spices, cooking oil...',
+                        'Search atta, dal, spices, milk products & breads...',
                         style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
                       ),
                     ],
@@ -84,57 +119,6 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppDimensions.lg),
-
-              // Store Banner
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(AppDimensions.lg),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF166534), Color(0xFF15803D)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'TODAY\'S STORE SPECIAL',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Free Doorstep Delivery on Orders Above ₹500',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Purity guaranteed. Chakki-fresh flours & farm-sourced pulses.',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppDimensions.xl),
 
               // Categories Header
               Row(
@@ -154,99 +138,196 @@ class HomeScreen extends ConsumerWidget {
 
               // Category Pills Carousel
               categoriesAsync.when(
-                data: (categories) => SizedBox(
-                  height: 90,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: categories.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final cat = categories[index];
-                      return GestureDetector(
-                        onTap: () => context.push('/products?categoryId=${cat.id}&categoryName=${Uri.encodeComponent(cat.name)}'),
-                        child: Container(
-                          width: 80,
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryContainer,
-                                  shape: BoxShape.circle,
+                data: (categories) {
+                  final active = categories.where((c) => c.isActive).toList();
+                  return SizedBox(
+                    height: 94,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: active.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 10),
+                      itemBuilder: (context, index) {
+                        final cat = active[index];
+                        return GestureDetector(
+                          onTap: () => context.push('/products?categoryId=${cat.id}&categoryName=${Uri.encodeComponent(cat.name)}'),
+                          child: Container(
+                            width: 84,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.primaryContainer,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: cat.imageUrl.isNotEmpty
+                                      ? Image.network(
+                                          cat.imageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) => Icon(cat.iconData, color: AppColors.primary, size: 20),
+                                        )
+                                      : Icon(cat.iconData, color: AppColors.primary, size: 20),
                                 ),
-                                child: Icon(cat.iconData, color: AppColors.primary, size: 18),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                cat.name.split(',')[0],
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
+                                const SizedBox(height: 6),
+                                Text(
+                                  cat.name.split(',')[0],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                        );
+                      },
+                    ),
+                  );
+                },
                 loading: () => const SizedBox(
-                  height: 90,
+                  height: 94,
                   child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
                 error: (e, _) => Text('Could not load categories: $e'),
               ),
               const SizedBox(height: AppDimensions.xl),
 
-              // Featured Essentials
-              const Text(
-                'Popular Daily Essentials',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppDimensions.md),
+              // Curated Collections
+              collectionsAsync.when(
+                data: (collections) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Popular Everyday Essentials
+                      if (collections.essentials.isNotEmpty) ...[
+                        _buildSectionHeader(
+                          context,
+                          title: 'Popular Everyday Essentials',
+                          onViewAll: () => context.push('/products'),
+                        ),
+                        const SizedBox(height: AppDimensions.sm),
+                        _buildProductGrid(context, collections.essentials.take(4).toList()),
+                        const SizedBox(height: AppDimensions.xl),
+                      ],
 
-              productsAsync.when(
-                data: (products) => GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.65,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return ProductCard(
-                      product: product,
-                      onTap: () => context.push('/product-detail/${product.id}'),
-                    );
-                  },
-                ),
+                      // Featured Products
+                      if (collections.featured.isNotEmpty) ...[
+                        _buildSectionHeader(
+                          context,
+                          title: 'Featured Products',
+                          icon: Icons.star_outline,
+                          iconColor: AppColors.accent,
+                          onViewAll: () => context.push('/products'),
+                        ),
+                        const SizedBox(height: AppDimensions.sm),
+                        _buildProductGrid(context, collections.featured.take(4).toList()),
+                        const SizedBox(height: AppDimensions.xl),
+                      ],
+
+                      // Bestsellers
+                      if (collections.bestsellers.isNotEmpty) ...[
+                        _buildSectionHeader(
+                          context,
+                          title: 'Bestsellers',
+                          icon: Icons.local_fire_department_outlined,
+                          iconColor: Colors.deepOrange,
+                          onViewAll: () => context.push('/products'),
+                        ),
+                        const SizedBox(height: AppDimensions.sm),
+                        _buildProductGrid(context, collections.bestsellers.take(4).toList()),
+                        const SizedBox(height: AppDimensions.xl),
+                      ],
+
+                      // New Arrivals
+                      if (collections.newArrivals.isNotEmpty) ...[
+                        _buildSectionHeader(
+                          context,
+                          title: 'New Arrivals',
+                          icon: Icons.new_releases_outlined,
+                          iconColor: AppColors.primary,
+                          onViewAll: () => context.push('/products'),
+                        ),
+                        const SizedBox(height: AppDimensions.sm),
+                        _buildProductGrid(context, collections.newArrivals.take(4).toList()),
+                      ],
+                    ],
+                  );
+                },
                 loading: () => const LoadingView(message: 'Loading grocery essentials...'),
                 error: (err, _) => ErrorView(
-                  message: 'Failed to load catalog: $err',
-                  onRetry: () => ref.invalidate(productsProvider),
+                  message: 'Failed to load collections: $err',
+                  onRetry: () => ref.invalidate(collectionsProvider),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required String title,
+    IconData? icon,
+    Color? iconColor,
+    VoidCallback? onViewAll,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 18, color: iconColor),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        if (onViewAll != null)
+          TextButton(
+            onPressed: onViewAll,
+            child: const Text('See all', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildProductGrid(BuildContext context, List<ProductModel> products) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.65,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        final product = products[index];
+        return ProductCard(
+          product: product,
+          onTap: () => context.push('/product-detail/${product.id}'),
+        );
+      },
     );
   }
 }
