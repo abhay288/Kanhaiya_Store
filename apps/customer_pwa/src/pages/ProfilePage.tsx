@@ -9,6 +9,10 @@ export const ProfilePage: React.FC = () => {
   const [healthStatus, setHealthStatus] = useState<string | null>(null);
   const [authMsg, setAuthMsg] = useState<string | null>(null);
 
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [isPhoneLoading, setIsPhoneLoading] = useState(false);
+
   useEffect(() => {
     // Check if active session exists
     if (apiClient.getToken()) {
@@ -30,6 +34,29 @@ export const ProfilePage: React.FC = () => {
       .catch(() => setHealthStatus('Offline / Dev Mode'));
   }, []);
 
+  const handlePhoneLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = phoneNumber.replace(/\D/g, '');
+    if (!/^[6-9]\d{9}$/.test(clean)) {
+      setAuthMsg('Please enter a valid 10-digit Indian mobile number (starts with 6, 7, 8, 9).');
+      return;
+    }
+    setIsPhoneLoading(true);
+    setAuthMsg(null);
+    try {
+      const res = await apiClient.quickLogin(clean, displayName.trim() || undefined);
+      setUser(res.data.user);
+      setAuthMsg(`Signed in as ${res.data.user.displayName}`);
+      setPhoneNumber('');
+      setDisplayName('');
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setAuthMsg(error?.message || 'Login failed. Please check connection and try again.');
+    } finally {
+      setIsPhoneLoading(false);
+    }
+  };
+
   const handleRealGoogleSignIn = async () => {
     setLoading(true);
     setAuthMsg(null);
@@ -42,6 +69,8 @@ export const ProfilePage: React.FC = () => {
       const error = err as { code?: string; message?: string };
       if (error?.code === 'auth/popup-closed-by-user') {
         setAuthMsg('Google sign-in popup cancelled');
+      } else if (error?.code === 'auth/api-key-not-valid' || (error?.message && error.message.includes('api-key-not-valid'))) {
+        setAuthMsg('Google Sign-In is not configured. Please use Mobile Number login below.');
       } else {
         setAuthMsg(`Google Sign-In: ${error?.message || String(err)}`);
       }
@@ -175,22 +204,75 @@ export const ProfilePage: React.FC = () => {
         )}
 
         {!user ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handlePhoneLogin} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0 10px',
+                    backgroundColor: '#f1f5f9',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  required
+                  maxLength={10}
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Enter 10-digit mobile"
+                  style={{
+                    flex: 1,
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                    fontSize: '0.85rem',
+                  }}
+                />
+              </div>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your Name (Optional)"
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border)',
+                  fontSize: '0.85rem',
+                }}
+              />
+              <button
+                type="submit"
+                disabled={isPhoneLoading || phoneNumber.length < 10}
+                className="add-btn"
+                style={{
+                  backgroundColor: 'var(--primary)',
+                  color: '#FFFFFF',
+                  padding: '10px 14px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: phoneNumber.length < 10 || isPhoneLoading ? 'not-allowed' : 'pointer',
+                  opacity: phoneNumber.length < 10 || isPhoneLoading ? 0.6 : 1,
+                }}
+              >
+                {isPhoneLoading ? 'Signing in...' : '📱 Login / Register with Mobile'}
+              </button>
+            </form>
+
+            <div style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--text-muted)' }}>— OR —</div>
+
             <button
+              type="button"
               onClick={handleRealGoogleSignIn}
-              disabled={loading}
-              className="add-btn"
-              style={{
-                backgroundColor: 'var(--primary)',
-                color: '#FFFFFF',
-                padding: '10px 14px',
-                fontSize: '0.85rem',
-              }}
-            >
-              <UserCheck size={16} /> Continue with Google
-            </button>
-            <button
-              onClick={() => handleSimulatedGoogleSignIn('ADMIN')}
               disabled={loading}
               className="add-btn"
               style={{
@@ -199,6 +281,21 @@ export const ProfilePage: React.FC = () => {
                 border: '1px solid var(--border)',
                 padding: '9px 14px',
                 fontSize: '0.82rem',
+              }}
+            >
+              <UserCheck size={16} /> Continue with Google
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSimulatedGoogleSignIn('ADMIN')}
+              disabled={loading}
+              className="add-btn"
+              style={{
+                backgroundColor: 'transparent',
+                color: 'var(--text-muted)',
+                border: '1px dashed var(--border)',
+                padding: '7px 12px',
+                fontSize: '0.75rem',
               }}
             >
               Simulate Admin Sign-In (kanhaiyaastore@gmail.com)

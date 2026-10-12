@@ -8,7 +8,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ 
   title = 'Kanhaiya General Store', 
-  subtitle = 'In-Store Purchase & Pickup Only • We do not deliver products' 
+  subtitle = 'Fresh Essentials & Daily Groceries • Fatehpur Roshnai, Kanpur D. UP' 
 }) => {
   return (
     <header className="store-header">
