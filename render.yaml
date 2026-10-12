@@ -10,7 +10,7 @@ services:
     region: singapore # Closest region to India for optimal latency
     plan: starter # Starter plan recommended for production (persistent instance, no cold starts)
     rootDir: backend
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/v1/health
     autoDeploy: true
