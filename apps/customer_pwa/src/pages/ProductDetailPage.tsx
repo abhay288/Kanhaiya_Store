@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Check, ShieldCheck, Store, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Check, ShieldCheck, Store, AlertCircle, Share2 } from 'lucide-react';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { repository } from '../api/productRepository';
@@ -22,6 +22,32 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const [activeImage, setActiveImage] = useState<string>(product.imageUrl);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleShareProduct = async () => {
+    const shareUrl = `${window.location.origin}/product/${product.slug || product.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${product.name} | Kanhaiya General Store`,
+          text: `Buy ${product.name} at ₹${product.sellingPrice} from Kanhaiya General Store`,
+          url: shareUrl,
+        });
+        return;
+      } catch {
+        // Fallback to clipboard
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      // Prompt fallback
+      window.prompt('Copy product link:', shareUrl);
+    }
+  };
 
   // Track recently viewed and fetch related items
   useEffect(() => {
@@ -46,25 +72,48 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   return (
     <div style={{ padding: '16px', paddingBottom: '90px' }}>
-      {/* Top Back Navigation Bar */}
-      <button
-        onClick={onBack}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--text-main)',
-          cursor: 'pointer',
-          padding: '4px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          marginBottom: '12px',
-          fontSize: '0.85rem',
-          fontWeight: 600,
-        }}
-      >
-        <ArrowLeft size={18} /> Back to Catalog
-      </button>
+      {/* Top Back Navigation & Share Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <button
+          onClick={onBack}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-main)',
+            cursor: 'pointer',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+          }}
+        >
+          <ArrowLeft size={18} /> Back to Catalog
+        </button>
+
+        <button
+          onClick={handleShareProduct}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '6px 12px',
+            backgroundColor: copiedLink ? '#dcfce7' : '#f1f5f9',
+            border: `1px solid ${copiedLink ? '#bbf7d0' : '#cbd5e1'}`,
+            color: copiedLink ? '#166534' : '#334155',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          title="Share this product page"
+        >
+          <Share2 size={14} />
+          <span>{copiedLink ? 'Link Copied!' : 'Share Product'}</span>
+        </button>
+      </div>
 
       {/* Hero Image Showcase */}
       <div

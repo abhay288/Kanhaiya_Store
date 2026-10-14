@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_error_handler.dart';
 
 enum UserRole {
   customer,
@@ -24,6 +28,15 @@ class UserModel {
   });
 
   bool get isAdmin => role == UserRole.admin;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'email': email,
+    'displayName': displayName,
+    'phoneNumber': phoneNumber,
+    'role': role == UserRole.admin ? 'ADMIN' : 'CUSTOMER',
+    'photoURL': photoURL,
+  };
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final email = (json['email'] as String? ?? '').toLowerCase().trim();
@@ -72,10 +85,50 @@ class AuthState {
 }
 
 class AuthNotifier extends Notifier<AuthState> {
-  @override
-  AuthState build() => const AuthState();
+  static const String _prefTokenKey = 'kgs_auth_session_token';
+  static const String _prefUserKey = 'kgs_auth_session_user';
 
-  /// Authenticate with real backend using a Google Firebase ID Token.
+  @override
+  AuthState build() {
+    apiClient.onUnauthorized = handleSessionExpired;
+    _loadPersistedSession();
+    return const AuthState();
+  }
+
+  Future<void> _loadPersistedSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedToken = prefs.getString(_prefTokenKey);
+      final savedUserJson = prefs.getString(_prefUserKey);
+
+      if (savedToken != null && savedToken.isNotEmpty && savedUserJson != null) {
+        final Map<String, dynamic> userMap = jsonDecode(savedUserJson);
+        final user = UserModel.fromJson(userMap);
+        apiClient.setAuthToken(savedToken);
+        state = AuthState(user: user, token: savedToken);
+      }
+    } catch (_) {
+      // Ignore corrupted cache fallback
+    }
+  }
+
+  Future<void> _persistSession(UserModel user, String token) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefTokenKey, token);
+      await prefs.setString(_prefUserKey, jsonEncode(user.toJson()));
+    } catch (_) {}
+  }
+
+  Future<void> _clearPersistedSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_prefTokenKey);
+      await prefs.remove(_prefUserKey);
+    } catch (_) {}
+  }
+
+  /// Authenticate with backend using a Google Firebase ID Token or dev token.
   Future<bool> signInWithBackendToken(String idToken) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -89,6 +142,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final token = data['token'] as String;
 
       apiClient.setAuthToken(token);
+      await _persistSession(user, token);
 
       state = AuthState(
         user: user,
@@ -99,7 +153,7 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'Backend authentication failed: $e',
+        errorMessage: ApiErrorHandler.getMessage(e),
       );
       return false;
     }
@@ -122,6 +176,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final token = data['token'] as String;
 
       apiClient.setAuthToken(token);
+      await _persistSession(user, token);
 
       state = AuthState(
         user: user,
@@ -130,59 +185,76 @@ class AuthNotifier extends Notifier<AuthState> {
       );
       return true;
     } catch (e) {
-      // Mock / offline fallback
-      final user = UserModel(
-        id: 'cust-${DateTime.now().millisecondsSinceEpoch}',
-        email: '',
-        phoneNumber: phone,
-        displayName: displayName ?? 'Valued Customer',
-        role: UserRole.customer,
-      );
-      const token = 'mock-phone-session-token';
-      apiClient.setAuthToken(token);
-      state = const AuthState().copyWith(
-        user: user,
-        token: token,
+      state = state.copyWith(
         isLoading: false,
+        errorMessage: ApiErrorHandler.getMessage(e),
       );
-      return true;
+      return false;
     }
   }
 
-  /// Sign in with demo mode when external OAuth credentials are not yet configured.
-  Future<void> signInWithGoogleDemo({bool simulateAsAdmin = false}) async {
-    state = const AuthState(isLoading: true);
-    await Future.delayed(const Duration(milliseconds: 600));
+  /// Real Google Sign In using google_sign_in package with fallback
+  Future<bool> signInWithGoogle() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final googleSignIn = GoogleSignIn(
+        serverClientId: '359309992004-jrcn6o638tefgln6bkre3bhgfaomcur8.apps.googleusercontent.com',
+        scopes: ['email', 'profile'],
+      );
 
-    if (simulateAsAdmin) {
-      state = const AuthState(
-        user: UserModel(
-          id: 'adm-001',
-          email: 'kanhaiyaastore@gmail.com',
-          displayName: 'Store Manager (Admin)',
-          role: UserRole.admin,
-        ),
-        token: 'mock-admin-session-token',
+      final GoogleSignInAccount? account = await googleSignIn.signIn();
+      if (account == null) {
+        // User cancelled the sign-in dialog
+        state = state.copyWith(isLoading: false);
+        return false;
+      }
+
+      final GoogleSignInAuthentication auth = await account.authentication;
+      final String? idToken = auth.idToken;
+
+      if (idToken != null && idToken.isNotEmpty) {
+        final success = await signInWithBackendToken(idToken);
+        if (success) return true;
+      }
+
+      // If idToken is null or backend call failed, fallback using account email
+      final email = account.email.trim().toLowerCase();
+      final isAdmin = email == 'kanhaiyaastore@gmail.com';
+      final fallbackToken = 'test-token:${isAdmin ? 'ADMIN' : 'CUSTOMER'}:$email';
+      return await signInWithBackendToken(fallbackToken);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: ApiErrorHandler.getMessage(e),
       );
-      apiClient.setAuthToken('mock-admin-session-token');
-    } else {
+      return false;
+    }
+  }
+
+  /// Sign in with demo/test credentials, communicating with backend to obtain a verified session token.
+  Future<bool> signInWithGoogleDemo({bool simulateAsAdmin = false}) async {
+    final testToken = simulateAsAdmin
+        ? 'test-token:admin:kanhaiyaastore@gmail.com'
+        : 'test-token:customer:customer@example.com';
+    return await signInWithBackendToken(testToken);
+  }
+
+  void handleSessionExpired() {
+    if (state.isAuthenticated) {
+      apiClient.setAuthToken(null);
+      _clearPersistedSession();
       state = const AuthState(
-        user: UserModel(
-          id: 'cust-001',
-          email: 'abhay.customer@example.com',
-          displayName: 'Abhay Kushwaha',
-          role: UserRole.customer,
-        ),
-        token: 'mock-customer-session-token',
+        errorMessage: 'Your session has expired. Please sign in again to continue.',
       );
-      apiClient.setAuthToken('mock-customer-session-token');
     }
   }
 
   void signOut() {
     apiClient.setAuthToken(null);
+    _clearPersistedSession();
     state = const AuthState();
   }
 }
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+

@@ -29,6 +29,10 @@ export interface IStoreSettings extends Document {
   customerStatusNotificationsEnabled: boolean;
   invoicePrefix: string;
   gstin?: string;
+  fssai?: string;
+  pan?: string;
+  stateName?: string;
+  stateCode?: string;
   taxDetails?: string;
   currency: string;
   currencySymbol: string;
@@ -60,7 +64,7 @@ const StoreSettingsSchema = new Schema<IStoreSettings>(
     storeAddress: {
       type: String,
       required: true,
-      default: 'House 42, Main Bazar, Near City Post Office, New Delhi - 110001',
+      default: 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
     },
     logoUrl: {
       type: String,
@@ -94,11 +98,11 @@ const StoreSettingsSchema = new Schema<IStoreSettings>(
     },
     isDeliveryEnabled: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     serviceablePincodes: {
       type: [String],
-      default: ['110001', '110002', '110003', '110006', '110084'],
+      default: ['209304', '209305', '208001', '208002'],
     },
     minOrderValue: {
       type: Number,
@@ -122,7 +126,7 @@ const StoreSettingsSchema = new Schema<IStoreSettings>(
     },
     isWhatsappQrEnabled: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     paymentInstructions: {
       type: String,
@@ -150,7 +154,23 @@ const StoreSettingsSchema = new Schema<IStoreSettings>(
     },
     gstin: {
       type: String,
-      default: '',
+      default: '09ANBPL4077E1Z1',
+    },
+    fssai: {
+      type: String,
+      default: '12722046000057',
+    },
+    pan: {
+      type: String,
+      default: 'ANBPL4077E',
+    },
+    stateName: {
+      type: String,
+      default: 'Uttar Pradesh',
+    },
+    stateCode: {
+      type: String,
+      default: '09',
     },
     taxDetails: {
       type: String,

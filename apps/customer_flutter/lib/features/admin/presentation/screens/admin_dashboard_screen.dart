@@ -7,6 +7,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../data/admin_analytics_repository.dart';
 import '../../domain/models/analytics_models.dart';
+import '../../../../core/network/api_error_handler.dart';
 import 'admin_categories_screen.dart';
 import 'admin_product_edit_screen.dart';
 import 'admin_products_screen.dart';
@@ -16,6 +17,8 @@ import 'admin_analytics_dashboard_screen.dart';
 import 'admin_reports_screen.dart';
 import 'admin_customers_screen.dart';
 import 'admin_store_settings_screen.dart';
+import '../../../notifications/presentation/controllers/notification_controller.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -27,6 +30,7 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   AnalyticsOverviewModel? _metrics;
   bool _isLoadingMetrics = true;
+  String? _metricsError;
 
   @override
   void initState() {
@@ -35,6 +39,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Future<void> _fetchLiveMetrics() async {
+    setState(() {
+      _isLoadingMetrics = true;
+      _metricsError = null;
+    });
     try {
       final repo = ref.read(adminAnalyticsRepositoryProvider);
       final data = await repo.getOverview('today');
@@ -44,9 +52,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _isLoadingMetrics = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        setState(() => _isLoadingMetrics = false);
+        setState(() {
+          _metricsError = ApiErrorHandler.getMessage(e);
+          _isLoadingMetrics = false;
+        });
       }
     }
   }
@@ -54,6 +65,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final unreadNotificationCount = ref.watch(unreadNotificationCountProvider);
+    final notificationsAsync = ref.watch(notificationsNotifierProvider);
 
     // Double security assertion
     if (!authState.isAdmin) {
@@ -68,26 +81,107 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
+        toolbarHeight: 64,
         title: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.asset(
-                'assets/images/kgs_logo.png',
-                width: 24,
-                height: 24,
-                fit: BoxFit.contain,
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(2),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.asset(
+                  'assets/images/kgs_logo.png',
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-            const Text('Store Admin Center'),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Kanhaiya General Store',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    'Store Admin Center',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-        backgroundColor: AppColors.onPrimaryContainer,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        elevation: 1,
         actions: [
+          // Live Customer Order Alert Bell
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                tooltip: 'Customer Order Alerts',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                  );
+                },
+              ),
+              if (unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      unreadNotificationCount > 9 ? '9+' : '$unreadNotificationCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.settings_outlined, color: Colors.white),
             tooltip: 'Store Operating Settings',
             onPressed: () {
               Navigator.of(context).push(
@@ -96,7 +190,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            tooltip: 'Refresh metrics',
             onPressed: _fetchLiveMetrics,
           ),
         ],
@@ -140,7 +235,112 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               ),
               const SizedBox(height: AppDimensions.md),
 
-              // Operational Metrics Grid (Live Data from Phase 8 API)
+              // Live Customer Order Alert Banner
+              notificationsAsync.when(
+                data: (notifications) {
+                  final alerts = notifications.where((n) => n.type == 'ADMIN_ALERT' || !n.isRead).toList();
+                  if (alerts.isEmpty) return const SizedBox.shrink();
+                  final latestAlert = alerts.first;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: AppDimensions.md),
+                    padding: const EdgeInsets.all(AppDimensions.md),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFEF2F2), Color(0xFFFEE2E2)],
+                      ),
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                      border: Border.all(color: const Color(0xFFF87171), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      latestAlert.title,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                        color: Color(0xFF991B1B),
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    latestAlert.timeAgo,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFB91C1C),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                latestAlert.message,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF7F1D1D),
+                                  height: 1.3,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              InkWell(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                                  );
+                                },
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'View all order alerts',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFFDC2626),
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                    SizedBox(width: 4),
+                                    Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFFDC2626)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (err, stack) => const SizedBox.shrink(),
+              ),
+
+              // Operational Metrics Header & Error State
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -150,6 +350,33 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 ],
               ),
               const SizedBox(height: AppDimensions.sm),
+
+              if (_metricsError != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: AppDimensions.sm),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.errorContainer,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: AppColors.error, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _metricsError!,
+                          style: const TextStyle(color: AppColors.error, fontSize: 12),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _fetchLiveMetrics,
+                        child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.error)),
+                      ),
+                    ],
+                  ),
+                ),
 
               GridView.count(
                 crossAxisCount: 2,
@@ -161,31 +388,39 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 children: [
                   _buildMetricCard(
                     'Orders Today',
-                    _metrics != null ? '${_metrics!.ordersToday}' : '...',
+                    _metrics != null
+                        ? '${_metrics!.ordersToday}'
+                        : (_isLoadingMetrics ? '...' : '0'),
                     AppColors.primary,
                   ),
                   _buildMetricCard(
                     'Awaiting Action',
-                    _metrics != null ? '${_metrics!.awaitingConfirmation}' : '...',
+                    _metrics != null
+                        ? '${_metrics!.awaitingConfirmation}'
+                        : (_isLoadingMetrics ? '...' : '0'),
                     AppColors.warning,
                   ),
                   _buildMetricCard(
                     'Collected Today',
-                    _metrics != null ? CurrencyFormatter.format(_metrics!.verifiedPayments) : '...',
+                    _metrics != null
+                        ? CurrencyFormatter.format(_metrics!.verifiedPayments)
+                        : (_isLoadingMetrics ? '...' : CurrencyFormatter.format(0)),
                     AppColors.secondary,
                   ),
                   _buildMetricCard(
                     'Low / Out Stock',
-                    _metrics != null ? '${_metrics!.lowStockCount + _metrics!.outOfStockCount}' : '...',
+                    _metrics != null
+                        ? '${_metrics!.lowStockCount + _metrics!.outOfStockCount}'
+                        : (_isLoadingMetrics ? '...' : '0'),
                     AppColors.error,
                   ),
                 ],
               ),
               const SizedBox(height: AppDimensions.lg),
 
-              // Section 1: Analytics & Reports (Phase 8)
+              // Section 1: Analytics, Reports & Settings
               const Text(
-                'Analytics, Reports & Settings (Phase 8)',
+                'Analytics, Reports & Settings',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppDimensions.sm),
@@ -246,7 +481,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     child: _buildActionTile(
                       context,
                       title: 'Store Settings',
-                      subtitle: 'Delivery rules, checkout, alerts & GSTIN',
+                      subtitle: 'Store profile, checkout alerts & GSTIN',
                       icon: Icons.tune_outlined,
                       color: Colors.teal.shade700,
                       onTap: () {
@@ -260,9 +495,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               ),
               const SizedBox(height: AppDimensions.lg),
 
-              // Section 2: Order Fulfillment & Invoices (Phase 7)
+              // Section 2: Order Fulfillment & Invoices
               const Text(
-                'Order Fulfillment & Invoices (Phase 7)',
+                'Order Fulfillment & Invoices',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppDimensions.sm),
@@ -296,9 +531,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               ),
               const SizedBox(height: AppDimensions.lg),
 
-              // Section 3: Catalog & Inventory Management Center (Phase 3 & 4)
+              // Section 3: Catalog & Inventory Management
               const Text(
-                'Catalog & Inventory Management (Phase 3 & 4)',
+                'Catalog & Inventory Management',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppDimensions.sm),
@@ -338,7 +573,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Inventory & Stock Control Card (Phase 4)
+              // Inventory & Stock Control Card
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -351,7 +586,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     child: Icon(Icons.warehouse_outlined, color: Colors.white, size: 20),
                   ),
                   title: const Text(
-                    'Inventory & Stock Control (Phase 4)',
+                    'Inventory & Stock Control',
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
                   ),
                   subtitle: const Text(

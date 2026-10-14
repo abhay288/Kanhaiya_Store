@@ -6,6 +6,7 @@ class ApiClient {
 
   final Dio dio;
   String? _authToken;
+  void Function()? onUnauthorized;
 
   ApiClient({String? baseUrl})
       : dio = Dio(
@@ -22,10 +23,26 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          if (_authToken != null) {
-            options.headers['Authorization'] = 'Bearer $_authToken';
+          // Attach Authorization Bearer token only if present and target is not an external third-party URL
+          if (_authToken != null && _authToken!.isNotEmpty) {
+            final uri = options.uri;
+            final isInternal = !options.path.startsWith('http') ||
+                uri.host.contains('onrender.com') ||
+                uri.host.contains('localhost') ||
+                uri.host.contains('127.0.0.1') ||
+                uri.host.contains('10.0.2.2');
+
+            if (isInternal) {
+              options.headers['Authorization'] = 'Bearer $_authToken';
+            }
           }
           return handler.next(options);
+        },
+        onError: (DioException error, handler) {
+          if (error.response?.statusCode == 401) {
+            onUnauthorized?.call();
+          }
+          return handler.next(error);
         },
       ),
     );

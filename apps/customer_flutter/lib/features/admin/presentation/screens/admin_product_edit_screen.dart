@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/network/api_error_handler.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../catalog/domain/models/category_model.dart';
 import '../../../catalog/domain/models/product_model.dart';
+import '../../../catalog/presentation/screens/product_detail_screen.dart';
 import '../../data/admin_catalog_repository.dart';
 
 class AdminProductEditScreen extends StatefulWidget {
@@ -129,7 +132,7 @@ class _AdminProductEditScreenState extends State<AdminProductEditScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load initial data: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Failed to load initial data: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -277,7 +280,7 @@ class _AdminProductEditScreenState extends State<AdminProductEditScreen> {
       setState(() => _isUploadingImage = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gallery upload failed: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Gallery upload failed: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -318,7 +321,7 @@ class _AdminProductEditScreenState extends State<AdminProductEditScreen> {
       setState(() => _isUploadingImage = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Camera upload failed: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Camera upload failed: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -624,22 +627,41 @@ class _AdminProductEditScreenState extends State<AdminProductEditScreen> {
         'images': _gallery.map((img) => img.toJson()).toList(),
       };
 
+      ProductModel savedProduct;
       if (_isEditing) {
-        await _repo.updateProduct(widget.productId!, payload);
+        savedProduct = await _repo.updateProduct(widget.productId!, payload);
       } else {
-        await _repo.createProduct(payload);
+        savedProduct = await _repo.createProduct(payload);
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isEditing ? 'Product updated successfully' : 'Product created successfully',
+        setState(() => _isSaving = false);
+        if (_isEditing) {
+          final targetId = savedProduct.id;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Product updated successfully & refreshed across store!'),
+              backgroundColor: AppColors.primary,
+              action: SnackBarAction(
+                label: 'View Page',
+                textColor: Colors.white,
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProductDetailScreen(productId: targetId),
+                    ),
+                  );
+                },
+              ),
             ),
-            backgroundColor: AppColors.primary,
-          ),
-        );
-        Navigator.of(context).pop(true);
+          );
+          Navigator.of(context).pop(true);
+        } else {
+          await _showProductCreatedSuccessModal(savedProduct);
+          if (mounted) {
+            Navigator.of(context).pop(true);
+          }
+        }
       }
     } catch (e) {
       setState(() => _isSaving = false);
@@ -648,9 +670,7 @@ class _AdminProductEditScreenState extends State<AdminProductEditScreen> {
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Save Failed', style: TextStyle(color: AppColors.error)),
-            content: Text(
-              e.toString().replaceAll('DioException [bad response]: ', '').replaceAll('Exception: ', ''),
-            ),
+            content: Text(ApiErrorHandler.getMessage(e)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
@@ -661,6 +681,250 @@ class _AdminProductEditScreenState extends State<AdminProductEditScreen> {
         );
       }
     }
+  }
+
+  Future<void> _showProductCreatedSuccessModal(ProductModel product) async {
+    final liveUrl = 'https://kanhaiyastore.com/product/${product.id}';
+    final primaryImg = product.imageUrl;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Celebration Icon & Title
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.check_circle_rounded,
+                        color: AppColors.primary,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Live Product Page Created!',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Immediately live across customer catalog & search.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Product Preview Mini-Card
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: primaryImg.isNotEmpty
+                            ? Image.network(
+                                primaryImg,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => const Icon(
+                                  Icons.shopping_bag_outlined,
+                                  color: AppColors.textTertiary,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.shopping_bag_outlined,
+                                color: AppColors.textTertiary,
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${product.categoryName} • ${product.packSize.isNotEmpty ? product.packSize : product.unit}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${CurrencyFormatter.format(product.sellingPrice)} • Stock: ${product.stockQuantity}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Shareable Link Row
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.link, size: 18, color: AppColors.textSecondary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          liveUrl,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy, size: 18, color: AppColors.primary),
+                        tooltip: 'Copy Link',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () async {
+                          await Clipboard.setData(ClipboardData(text: liveUrl));
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(
+                                content: Text('Product link copied to clipboard!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Primary Action: View Live Product Page
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    ),
+                  ),
+                  icon: const Icon(Icons.remove_red_eye_outlined, size: 20),
+                  label: const Text(
+                    'View Live Product Page',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ProductDetailScreen(productId: product.id),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+
+                // Secondary Action: Share Link
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    ),
+                  ),
+                  icon: const Icon(Icons.share_outlined, size: 18),
+                  label: const Text('Copy & Share Product Link'),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: liveUrl));
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(
+                          content: Text('Product link copied to clipboard!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 10),
+
+                // Close / Done
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Done (Back to Inventory)'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -1084,10 +1348,39 @@ class _AdminProductEditScreenState extends State<AdminProductEditScreen> {
                       child: Column(
                         children: [
                           SwitchListTile(
-                            title: const Text('Published to Store', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                            subtitle: const Text('Visible to customers in the catalog', style: TextStyle(fontSize: 11)),
+                            title: Row(
+                              children: [
+                                const Text('Store LIVE Status', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _isPublished ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: _isPublished ? const Color(0xFF86EFAC) : const Color(0xFFCBD5E1),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _isPublished ? '🟢 LIVE' : '⚪ UNLIVE',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: _isPublished ? const Color(0xFF15803D) : const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            subtitle: Text(
+                              _isPublished
+                                  ? 'LIVE: Visible to customers and available for purchase'
+                                  : 'UNLIVE: Hidden from customer catalog and search',
+                              style: const TextStyle(fontSize: 11),
+                            ),
                             value: _isPublished,
-                            activeThumbColor: AppColors.primary,
+                            activeThumbColor: const Color(0xFF16A34A),
+                            activeTrackColor: const Color(0xFFBBF7D0),
                             onChanged: (val) => setState(() => _isPublished = val),
                           ),
                           const Divider(height: 1),

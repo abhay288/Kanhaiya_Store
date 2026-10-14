@@ -43,7 +43,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Fulfillment & Form State
-  const [fulfillmentMethod, setFulfillmentMethod] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<'DELIVERY' | 'PICKUP'>('PICKUP');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -1081,7 +1081,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
             </div>
             <div style={{ fontSize: '0.82rem', color: '#334155', lineHeight: 1.5 }}>
               <div><strong>{settings?.storeName || 'Kanhaiya General Store'}</strong></div>
-              <div>{settings?.storeAddress || 'House 42, Main Bazar, Near City Post Office, New Delhi - 110001'}</div>
+              <div>{settings?.storeAddress || 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh'}</div>
               <div style={{ color: '#174D3A', fontWeight: 600, marginTop: '6px' }}>
                 Instructions: {settings?.pickupInstructions || 'Orders are packed and kept ready at the store counter. Share your Order Number when collecting.'}
               </div>
@@ -1125,9 +1125,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
               />
               <Banknote size={22} color="#174D3A" />
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#174D3A' }}>Cash on Delivery (COD)</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#174D3A' }}>Pay at Store / Pay on Pickup</div>
                 <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  Pay cash or UPI upon delivery / counter pickup. Status remains PENDING until fulfilled.
+                  Pay cash or UPI at the store pickup counter when collecting your items. Status remains PENDING until fulfilled.
                 </div>
               </div>
             </label>
@@ -1177,13 +1177,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
           }}
         >
           <label style={{ fontSize: '0.85rem', fontWeight: 800, color: '#174D3A', display: 'block', marginBottom: '6px' }}>
-            Special Instructions / Delivery Notes (Optional)
+            Special Instructions / Pickup Notes (Optional)
           </label>
           <textarea
             rows={2}
             value={customerNotes}
             onChange={(e) => setCustomerNotes(e.target.value)}
-            placeholder="e.g. Please ring doorbell twice, or leave at reception"
+            placeholder="e.g. Will pick up around 5 PM"
             style={{
               width: '100%',
               padding: '8px 10px',

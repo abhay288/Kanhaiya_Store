@@ -6,14 +6,14 @@ import 'catalog_repository.dart';
 
 class MockCatalogRepository implements CatalogRepository {
   static const List<CategoryModel> _mockCategories = [
-    CategoryModel(id: 'cat-1', name: 'Atta, Flours & Sooji', slug: 'atta-flours', icon: '🌾', itemCount: 18),
-    CategoryModel(id: 'cat-2', name: 'Rice & Grains', slug: 'rice-grains', icon: '🍚', itemCount: 24),
-    CategoryModel(id: 'cat-3', name: 'Dals & Pulses', slug: 'dals-pulses', icon: '🥣', itemCount: 32),
-    CategoryModel(id: 'cat-4', name: 'Oils & Ghee', slug: 'oils-ghee', icon: '🫒', itemCount: 15),
-    CategoryModel(id: 'cat-5', name: 'Spices & Masalas', slug: 'spices-masalas', icon: '🌶️', itemCount: 40),
-    CategoryModel(id: 'cat-6', name: 'Milk Products & Breads', slug: 'milk-breads', icon: '🥛', itemCount: 16),
-    CategoryModel(id: 'cat-7', name: 'Snacks & Biscuits', slug: 'snacks', icon: '🍪', itemCount: 28),
-    CategoryModel(id: 'cat-8', name: 'Cleaning & Essentials', slug: 'cleaning', icon: '🧼', itemCount: 20),
+    CategoryModel(id: 'cat-1', name: 'Atta, Flours & Sooji', slug: 'atta-flours', icon: '🌾', itemCount: 1),
+    CategoryModel(id: 'cat-2', name: 'Rice & Grains', slug: 'rice-grains', icon: '🍚', itemCount: 1),
+    CategoryModel(id: 'cat-3', name: 'Dals & Pulses', slug: 'dals-pulses', icon: '🥣', itemCount: 1),
+    CategoryModel(id: 'cat-4', name: 'Oils & Ghee', slug: 'oils-ghee', icon: '🫒', itemCount: 2),
+    CategoryModel(id: 'cat-5', name: 'Spices & Masalas', slug: 'spices-masalas', icon: '🌶️', itemCount: 0),
+    CategoryModel(id: 'cat-7', name: 'Snacks & Biscuits', slug: 'snacks', icon: '🍪', itemCount: 0),
+    CategoryModel(id: 'cat-8', name: 'Cleaning & Household Essentials', slug: 'cleaning', icon: '🧼', itemCount: 0),
+    CategoryModel(id: 'cat-9', name: 'Personal Care', slug: 'personal-care', icon: '🧴', itemCount: 0),
   ];
 
   static const List<ProductModel> _mockProducts = [
@@ -31,7 +31,7 @@ class MockCatalogRepository implements CatalogRepository {
       isAvailable: true,
       isFeatured: true,
       isBestseller: true,
-      imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=500&q=80',
       description: '100% pure whole wheat flour processed with superior 40-step process for soft, fluffy rotis.',
     ),
     ProductModel(
@@ -47,7 +47,7 @@ class MockCatalogRepository implements CatalogRepository {
       stockQuantity: 30,
       isAvailable: true,
       isNewArrival: true,
-      imageUrl: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=500&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1620706857370-e1b9770e8bb1?auto=format&fit=crop&w=500&q=80',
       description: 'Light and healthy refined sunflower oil enriched with vitamins A & D for everyday healthy cooking.',
     ),
     ProductModel(
@@ -102,7 +102,16 @@ class MockCatalogRepository implements CatalogRepository {
   @override
   Future<List<CategoryModel>> getCategories() async {
     await Future.delayed(const Duration(milliseconds: 100));
-    return _mockCategories;
+    return _mockCategories.map((c) {
+      final realCount = _mockProducts.where((p) => p.categoryId == c.id && p.isAvailable).length;
+      return CategoryModel(
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        icon: c.icon,
+        itemCount: realCount,
+      );
+    }).toList();
   }
 
   @override

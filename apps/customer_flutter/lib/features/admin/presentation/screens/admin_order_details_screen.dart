@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/network/api_error_handler.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../checkout/domain/models/order_model.dart';
 import '../../data/admin_orders_repository.dart';
@@ -47,7 +48,7 @@ class _AdminOrderDetailsScreenState extends ConsumerState<AdminOrderDetailsScree
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _errorMessage = ApiErrorHandler.getMessage(e);
           _isLoading = false;
         });
       }
@@ -120,7 +121,7 @@ class _AdminOrderDetailsScreenState extends ConsumerState<AdminOrderDetailsScree
         setState(() => _isActionInProgress = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update status: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text('Failed to update status: ${ApiErrorHandler.getMessage(e)}'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -205,7 +206,7 @@ class _AdminOrderDetailsScreenState extends ConsumerState<AdminOrderDetailsScree
         setState(() => _isActionInProgress = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to cancel order: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text('Failed to cancel order: ${ApiErrorHandler.getMessage(e)}'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -295,7 +296,7 @@ class _AdminOrderDetailsScreenState extends ConsumerState<AdminOrderDetailsScree
         setState(() => _isActionInProgress = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to verify payment: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text('Failed to verify payment: ${ApiErrorHandler.getMessage(e)}'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -344,9 +345,164 @@ class _AdminOrderDetailsScreenState extends ConsumerState<AdminOrderDetailsScree
         setState(() => _isActionInProgress = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to record COD: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text('Failed to record COD: ${ApiErrorHandler.getMessage(e)}'),
             backgroundColor: AppColors.error,
           ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showEditOrderDialog() async {
+    if (_order == null) return;
+    final nameCtrl = TextEditingController(text: _order!.customerName);
+    final phoneCtrl = TextEditingController(text: _order!.customerPhone);
+    final emailCtrl = TextEditingController(text: _order!.customerEmail ?? '');
+    final notesCtrl = TextEditingController(text: _order!.customerNotes ?? '');
+    String selectedStatus = _order!.orderStatus;
+    String selectedPaymentStatus = _order!.paymentStatus;
+
+    final statuses = ['PLACED', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'COMPLETED', 'CANCELLED'];
+    final paymentStatuses = ['PENDING', 'PAID', 'FAILED', 'REFUNDED'];
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          title: Text('Edit Order #${_order!.orderNumber}'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Customer Name', border: OutlineInputBorder(), isDense: true),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: phoneCtrl,
+                    decoration: const InputDecoration(labelText: 'Phone Number', border: OutlineInputBorder(), isDense: true),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: emailCtrl,
+                    decoration: const InputDecoration(labelText: 'Email Address', border: OutlineInputBorder(), isDense: true),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Order Status', border: OutlineInputBorder(), isDense: true),
+                    initialValue: statuses.contains(selectedStatus) ? selectedStatus : statuses.first,
+                    items: statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => selectedStatus = val);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Payment Status', border: OutlineInputBorder(), isDense: true),
+                    initialValue: paymentStatuses.contains(selectedPaymentStatus) ? selectedPaymentStatus : paymentStatuses.first,
+                    items: paymentStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => selectedPaymentStatus = val);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: notesCtrl,
+                    decoration: const InputDecoration(labelText: 'Order Notes', border: OutlineInputBorder(), isDense: true),
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isActionInProgress = true);
+    try {
+      final repo = ref.read(adminOrdersRepositoryProvider);
+      final updated = await repo.updateAdminOrder(widget.orderId, {
+        'customerName': nameCtrl.text.trim(),
+        'customerPhone': phoneCtrl.text.trim(),
+        'customerEmail': emailCtrl.text.trim(),
+        'customerNotes': notesCtrl.text.trim(),
+        'orderStatus': selectedStatus,
+        'paymentStatus': selectedPaymentStatus,
+      });
+      _hasModified = true;
+      if (mounted) {
+        setState(() {
+          _order = updated;
+          _isActionInProgress = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order updated successfully.'), backgroundColor: AppColors.primary),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isActionInProgress = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update order: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _showDeleteOrderDialog() async {
+    if (_order == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Order #${_order!.orderNumber}?'),
+        content: const Text(
+          'Are you sure you want to permanently delete this order directly from MongoDB? Any reserved inventory will be automatically restored to the product stock.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Permanently Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isActionInProgress = true);
+    try {
+      final repo = ref.read(adminOrdersRepositoryProvider);
+      await repo.deleteAdminOrder(widget.orderId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order #${_order!.orderNumber} permanently deleted and stock restored.')),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isActionInProgress = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete order: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -385,14 +541,30 @@ class _AdminOrderDetailsScreenState extends ConsumerState<AdminOrderDetailsScree
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
         appBar: AppBar(
-          title: Text(_order != null ? 'Order #${_order!.orderNumber}' : 'Order Details'),
-          backgroundColor: AppColors.onPrimaryContainer,
+          title: Text(
+            _order != null ? 'Order #${_order!.orderNumber}' : 'Order Details',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+          ),
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
+          elevation: 1,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(_hasModified),
           ),
           actions: [
+            if (_order != null) ...[
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Edit Order Info',
+                onPressed: _showEditOrderDialog,
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.white),
+                tooltip: 'Delete Order from MongoDB',
+                onPressed: _showDeleteOrderDialog,
+              ),
+            ],
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: _fetchOrder,

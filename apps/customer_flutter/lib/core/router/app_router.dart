@@ -74,6 +74,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           return ProductDetailScreen(productId: id);
         },
       ),
+      GoRoute(
+        path: '/product/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return ProductDetailScreen(productId: id);
+        },
+      ),
+      GoRoute(
+        path: '/p/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '';
+          return ProductDetailScreen(productId: id);
+        },
+      ),
 
       // Checkout Screen
       GoRoute(

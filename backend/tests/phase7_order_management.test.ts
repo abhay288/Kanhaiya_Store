@@ -615,4 +615,57 @@ describe('Phase 7: Order Management, Lifecycle & Invoices Suite', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  describe('7. Order History Endpoint Routing & Isolation (/orders/my vs /orders/:id)', () => {
+    it('GET /api/v1/orders/my - should return 200 with customer orders array', async () => {
+      const res = await request(app)
+        .get('/api/v1/orders/my')
+        .set('Authorization', `Bearer ${customerToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      res.body.data.forEach((o: any) => {
+        expect(o.customerId?.toString()).toBe(customerId);
+      });
+    });
+
+    it('GET /api/v1/orders/my - should return empty array for customer with no orders', async () => {
+      const res = await request(app)
+        .get('/api/v1/orders/my')
+        .set('Authorization', `Bearer ${otherCustomerToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data.length).toBe(0);
+    });
+
+    it('GET /api/v1/orders/my - should return 401 when accessed by unauthenticated guest', async () => {
+      const res = await request(app)
+        .get('/api/v1/orders/my');
+
+      expect(res.status).toBe(401);
+    });
+
+    it('GET /api/v1/orders/non-existent-order - should return 404 and NOT confuse with /orders/my', async () => {
+      const res = await request(app)
+        .get('/api/v1/orders/NON_EXISTENT_ID_999')
+        .set('Authorization', `Bearer ${customerToken}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error?.message).toContain('NON_EXISTENT_ID_999');
+    });
+
+    it('GET /api/v1/orders/my - should NEVER return Order "my" not found error', async () => {
+      const res = await request(app)
+        .get('/api/v1/orders/my')
+        .set('Authorization', `Bearer ${customerToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.error?.message).toBeUndefined();
+    });
+  });
 });
+

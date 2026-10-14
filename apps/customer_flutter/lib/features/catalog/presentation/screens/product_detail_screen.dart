@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -10,6 +11,7 @@ import '../../../cart/presentation/controllers/cart_controller.dart';
 import '../controllers/catalog_providers.dart';
 
 final singleProductProvider = FutureProvider.family((ref, String id) async {
+  ref.watch(catalogVersionProvider);
   final repo = ref.watch(catalogRepositoryProvider);
   return repo.getProductById(id);
 });
@@ -59,6 +61,25 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         return Scaffold(
           appBar: AppBar(
             title: Text(product.name),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.share_outlined),
+                tooltip: 'Share Product',
+                onPressed: () async {
+                  final link = 'https://kanhaiyastore.com/product/${product.id}';
+                  await Clipboard.setData(ClipboardData(text: link));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Product link copied: $link'),
+                        backgroundColor: AppColors.primary,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(AppDimensions.lg),

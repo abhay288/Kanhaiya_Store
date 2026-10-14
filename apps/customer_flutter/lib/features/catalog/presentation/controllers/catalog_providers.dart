@@ -7,6 +7,15 @@ import '../../domain/models/category_model.dart';
 import '../../domain/models/product_model.dart';
 import '../../domain/models/collections_model.dart';
 
+class CatalogVersionNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state++;
+}
+
+final catalogVersionProvider = NotifierProvider<CatalogVersionNotifier, int>(CatalogVersionNotifier.new);
+
 final catalogRepositoryProvider = Provider<CatalogRepository>((ref) {
   if (EnvConfig.useMockRepository) {
     return MockCatalogRepository();
@@ -15,16 +24,19 @@ final catalogRepositoryProvider = Provider<CatalogRepository>((ref) {
 });
 
 final categoriesProvider = FutureProvider<List<CategoryModel>>((ref) async {
+  ref.watch(catalogVersionProvider);
   final repo = ref.watch(catalogRepositoryProvider);
   return repo.getCategories();
 });
 
 final collectionsProvider = FutureProvider<CollectionsModel>((ref) async {
+  ref.watch(catalogVersionProvider);
   final repo = ref.watch(catalogRepositoryProvider);
   return repo.getCollections();
 });
 
 final relatedProductsProvider = FutureProvider.family<List<ProductModel>, String>((ref, productId) async {
+  ref.watch(catalogVersionProvider);
   final repo = ref.watch(catalogRepositoryProvider);
   return repo.getRelatedProducts(productId);
 });
@@ -65,6 +77,7 @@ class ProductFilter {
 }
 
 final productsProvider = FutureProvider.family<List<ProductModel>, ProductFilter>((ref, filter) async {
+  ref.watch(catalogVersionProvider);
   final repo = ref.watch(catalogRepositoryProvider);
   return repo.getProducts(
     categoryId: filter.categoryId,

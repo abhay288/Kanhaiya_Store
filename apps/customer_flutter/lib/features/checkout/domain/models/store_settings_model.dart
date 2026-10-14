@@ -39,19 +39,19 @@ class StoreSettingsModel {
       phone: json['phone'] ?? '+919876543210',
       whatsappNumber: json['whatsappNumber'] ?? '+919876543210',
       upiId: json['upiId'],
-      storeAddress: json['storeAddress'] ?? 'House 42, Main Bazar, Near City Post Office, New Delhi - 110001',
+      storeAddress: json['storeAddress'] ?? 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
       pickupInstructions: json['pickupInstructions'] ??
           'Orders are packed and kept ready at the store counter. Please share your Order Number when collecting.',
-      isDeliveryEnabled: json['isDeliveryEnabled'] ?? true,
+      isDeliveryEnabled: json['isDeliveryEnabled'] ?? false,
       serviceablePincodes: (json['serviceablePincodes'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
-          ['110001', '110002', '110003', '110006', '110084'],
+          ['209304', '209305', '208001', '208002'],
       minOrderValue: (json['minOrderValue'] as num?)?.toDouble() ?? 100.0,
       standardDeliveryFee: (json['standardDeliveryFee'] as num?)?.toDouble() ?? 30.0,
       freeDeliveryThreshold: (json['freeDeliveryThreshold'] as num?)?.toDouble() ?? 500.0,
       estimatedDeliveryWindow: json['estimatedDeliveryWindow'] ?? 'Same-day delivery within 2-4 hours',
-      isWhatsappQrEnabled: json['isWhatsappQrEnabled'] ?? true,
+      isWhatsappQrEnabled: json['isWhatsappQrEnabled'] ?? false,
       currency: json['currency'] ?? 'INR',
       currencySymbol: json['currencySymbol'] ?? '₹',
     );
@@ -59,19 +59,19 @@ class StoreSettingsModel {
 
   static const defaultSettings = StoreSettingsModel(
     storeName: 'Kanhaiya General Store',
-    phone: '+91 98765 43210',
-    whatsappNumber: '+919876543210',
+    phone: '+91 9936269347',
+    whatsappNumber: '+91 9936269347',
     upiId: 'kanhaiyastore@upi',
-    storeAddress: 'House 42, Main Bazar, Near City Post Office, New Delhi - 110001',
+    storeAddress: 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
     pickupInstructions:
         'Orders are packed and kept ready at the store counter. Please share your Order Number when collecting.',
-    isDeliveryEnabled: true,
-    serviceablePincodes: ['110001', '110002', '110003', '110006', '110084'],
+    isDeliveryEnabled: false,
+    serviceablePincodes: ['209304', '209305', '208001', '208002'],
     minOrderValue: 100.0,
     standardDeliveryFee: 30.0,
     freeDeliveryThreshold: 500.0,
     estimatedDeliveryWindow: 'Same-day delivery within 2-4 hours',
-    isWhatsappQrEnabled: true,
+    isWhatsappQrEnabled: false,
   );
 }
 

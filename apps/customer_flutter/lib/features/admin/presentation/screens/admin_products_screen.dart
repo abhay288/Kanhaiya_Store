@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/network/api_error_handler.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../catalog/domain/models/category_model.dart';
 import '../../../catalog/domain/models/product_model.dart';
+import '../../../catalog/presentation/screens/product_detail_screen.dart';
 import '../../data/admin_catalog_repository.dart';
 import 'admin_product_edit_screen.dart';
 
@@ -94,7 +97,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load products: $e';
+        _errorMessage = ApiErrorHandler.getMessage(e);
         _isLoading = false;
       });
     }
@@ -140,7 +143,11 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${product.name} is now ${newStatus ? 'published' : 'unpublished'}'),
+            content: Text(
+              '${product.name} is now ${newStatus ? 'LIVE on store' : 'UNLIVE (hidden from customers)'}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: newStatus ? const Color(0xFF16A34A) : const Color(0xFF475569),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -148,7 +155,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update status: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Failed to update status: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -190,7 +197,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Failed to delete: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -315,9 +322,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                     children: [
                       _buildFilterChip('All Items', 'all'),
                       const SizedBox(width: 6),
-                      _buildFilterChip('Published', 'published'),
+                      _buildFilterChip('🟢 LIVE', 'published'),
                       const SizedBox(width: 6),
-                      _buildFilterChip('Drafts', 'draft'),
+                      _buildFilterChip('⚪ UNLIVE', 'draft'),
                       const SizedBox(width: 6),
                       _buildFilterChip('Low Stock', 'low_stock'),
                       const SizedBox(width: 6),
@@ -480,18 +487,36 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                         const SizedBox(width: 6),
                       ],
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: product.isPublished ? AppColors.primaryContainer : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Text(
-                          product.isPublished ? 'Published' : 'Draft',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: product.isPublished ? AppColors.onPrimaryContainer : AppColors.textSecondary,
+                          color: product.isPublished ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: product.isPublished ? const Color(0xFF86EFAC) : const Color(0xFFCBD5E1),
                           ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: product.isPublished ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              product.isPublished ? 'LIVE' : 'UNLIVE',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: product.isPublished ? const Color(0xFF15803D) : const Color(0xFF64748B),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -559,14 +584,56 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             // Actions Column
             Column(
               children: [
-                Switch(
-                  value: product.isPublished,
-                  activeThumbColor: AppColors.primary,
-                  onChanged: (val) => _togglePublish(product, val),
+                Tooltip(
+                  message: product.isPublished ? 'Toggle to make UNLIVE' : 'Toggle to make LIVE',
+                  child: Switch(
+                    value: product.isPublished,
+                    activeThumbColor: const Color(0xFF16A34A),
+                    activeTrackColor: const Color(0xFFBBF7D0),
+                    inactiveThumbColor: const Color(0xFF94A3B8),
+                    inactiveTrackColor: const Color(0xFFE2E8F0),
+                    onChanged: (val) => _togglePublish(product, val),
+                  ),
+                ),
+                Text(
+                  product.isPublished ? 'LIVE' : 'UNLIVE',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: product.isPublished ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+                  ),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_red_eye_outlined, size: 18, color: AppColors.primary),
+                      tooltip: 'View Live Product Page',
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ProductDetailScreen(productId: product.id),
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.share_outlined, size: 18, color: AppColors.textSecondary),
+                      tooltip: 'Share Product Link',
+                      onPressed: () async {
+                        final link = 'https://kanhaiyastore.com/product/${product.id}';
+                        await Clipboard.setData(ClipboardData(text: link));
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Link copied: $link'),
+                              backgroundColor: AppColors.primary,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                    ),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined, size: 18),
                       tooltip: 'Edit',

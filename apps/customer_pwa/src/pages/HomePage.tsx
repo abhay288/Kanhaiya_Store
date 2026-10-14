@@ -45,6 +45,16 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   useEffect(() => {
     loadData();
+
+    // Instant update whenever admin uploads or updates products
+    const handleCatalogUpdate = () => {
+      loadData();
+    };
+    window.addEventListener('kgs_catalog_updated', handleCatalogUpdate);
+
+    return () => {
+      window.removeEventListener('kgs_catalog_updated', handleCatalogUpdate);
+    };
   }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {

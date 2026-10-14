@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -17,21 +18,21 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
-  // Fulfillment & Payment
-  String _fulfillmentMethod = 'DELIVERY'; // 'DELIVERY' or 'PICKUP'
-  String _selectedPayment = 'COD'; // 'COD' or 'WHATSAPP_QR'
+  // Fulfillment & Payment (Local Delivery disabled; Store Pickup only)
+  String _fulfillmentMethod = 'PICKUP';
+  String _selectedPayment = 'COD';
   bool _isSubmitting = false;
 
   // Form Fields
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: 'Abhay Kushwaha');
-  final _phoneController = TextEditingController(text: '9936269347');
-  final _houseController = TextEditingController(text: 'Shop 1');
-  final _streetController = TextEditingController(text: 'Fatehpur Roshnai');
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
+  final _houseController = TextEditingController(text: 'Ground Floor');
+  final _streetController = TextEditingController(text: 'Fatehpur Roshnai, Sarvankhera');
   final _landmarkController = TextEditingController(text: 'Near Kanhaiya Store');
-  final _cityController = TextEditingController(text: 'Kanpur');
+  final _cityController = TextEditingController(text: 'Kanpur Dehat');
   final _stateController = TextEditingController(text: 'Uttar Pradesh');
-  final _pinController = TextEditingController(text: '209303');
+  final _pinController = TextEditingController(text: '209304');
   final _instructionsController = TextEditingController();
 
   // Settings & Serviceability
@@ -43,15 +44,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    final authState = ref.read(authProvider);
-    if (authState.user != null) {
-      if (authState.user!.displayName.isNotEmpty) {
-        _nameController.text = authState.user!.displayName;
-      }
-      if (authState.user!.phoneNumber != null && authState.user!.phoneNumber!.isNotEmpty) {
-        _phoneController.text = authState.user!.phoneNumber!;
-      }
+    final authUser = ref.read(authProvider).user;
+    
+    String initialPhone = '';
+    if (authUser?.phoneNumber != null && authUser!.phoneNumber!.isNotEmpty) {
+      final digits = authUser.phoneNumber!.replaceAll(RegExp(r'\D'), '');
+      initialPhone = digits.length > 10 ? digits.substring(digits.length - 10) : digits;
     }
+
+    String initialName = '';
+    if (authUser != null && authUser.displayName.isNotEmpty && authUser.displayName != 'Valued Customer') {
+      initialName = authUser.displayName;
+    }
+
+    _nameController = TextEditingController(text: initialName);
+    _phoneController = TextEditingController(text: initialPhone);
+
     _loadSettingsAndCheckPin();
   }
 
@@ -61,9 +69,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (mounted) {
       setState(() {
         _settings = settings;
-        if (!settings.isDeliveryEnabled) {
-          _fulfillmentMethod = 'PICKUP';
-        }
+        _fulfillmentMethod = 'PICKUP';
+        _selectedPayment = 'COD';
       });
       _validatePincode(_pinController.text);
     }
@@ -104,8 +111,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<bool> _showLoginDialog(BuildContext context) async {
-    final phoneCtrl = TextEditingController(text: _phoneController.text);
-    final nameCtrl = TextEditingController(text: _nameController.text);
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
     bool isLoading = false;
     String? localError;
 
@@ -116,7 +123,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Container(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 28,
             left: 20,
             right: 20,
             top: 24,
@@ -156,11 +163,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Login to Complete Order',
+                          'Sign in with Google',
                           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                         ),
+                        SizedBox(height: 2),
                         Text(
-                          'Instant account creation if not registered',
+                          'Sign in to continue to checkout and track order',
                           style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                         ),
                       ],
@@ -169,84 +177,169 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ],
               ),
               if (localError != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.red.shade200),
                   ),
-                  child: Text(localError!, style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          localError!,
+                          style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
-              const SizedBox(height: 16),
-              TextField(
-                controller: phoneCtrl,
-                keyboardType: TextInputType.phone,
-                maxLength: 10,
-                decoration: InputDecoration(
-                  labelText: 'Contact Mobile Number *',
-                  prefixText: '+91 ',
-                  counterText: '',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: nameCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  labelText: 'Your Name (Optional)',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
+              const SizedBox(height: 22),
+
+              // Google Sign-In Button
+              OutlinedButton(
                 onPressed: isLoading
                     ? null
                     : () async {
-                        final phone = phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '');
-                        if (!RegExp(r'^[6-9]\d{9}$').hasMatch(phone)) {
-                          setModalState(() => localError = 'Please enter a valid 10-digit Indian mobile number');
-                          return;
-                        }
                         setModalState(() {
                           isLoading = true;
                           localError = null;
                         });
-                        final success = await ref.read(authProvider.notifier).signInWithPhone(
-                              phone: phone,
-                              displayName: nameCtrl.text.trim().isNotEmpty ? nameCtrl.text.trim() : null,
-                            );
-                        if (success) {
-                          if (mounted) {
-                            _phoneController.text = phone;
-                            if (nameCtrl.text.trim().isNotEmpty) {
-                              _nameController.text = nameCtrl.text.trim();
+                        try {
+                          final success = await ref.read(authProvider.notifier).signInWithGoogle();
+                          if (success) {
+                            if (ctx.mounted) {
+                              Navigator.of(ctx).pop(true);
+                            }
+                            if (mounted) {
+                              final authUser = ref.read(authProvider).user;
+                              final name = authUser?.displayName ?? 'Valued Customer';
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Welcome, $name! Returning to cart.'),
+                                  backgroundColor: AppColors.primary,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                              // After login, come back to cart page as requested
+                              router.go('/cart');
+                            }
+                          } else {
+                            if (ctx.mounted) {
+                              final authErr = ref.read(authProvider).errorMessage;
+                              setModalState(() {
+                                isLoading = false;
+                                localError = authErr ?? 'Google sign-in was cancelled or failed. Please try again.';
+                              });
                             }
                           }
-                          if (ctx.mounted) {
-                            Navigator.of(ctx).pop(true);
-                          }
-                        } else {
+                        } catch (e) {
                           if (ctx.mounted) {
                             setModalState(() {
                               isLoading = false;
-                              localError = 'Login failed. Please try again.';
+                              localError = 'Sign-in error: $e';
                             });
                           }
                         }
                       },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF3C4043),
+                  side: const BorderSide(color: Color(0xFFDADCE0), width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0.5,
                 ),
                 child: isLoading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Continue to Checkout', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 22,
+                            height: 22,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'G',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                                color: Color(0xFF4285F4),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Sign in with Google',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF3C4043),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+
+              // Fallback for tests/emulators if Google Play Services fails
+              if (localError != null) ...[
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          setModalState(() {
+                            isLoading = true;
+                            localError = null;
+                          });
+                          final success = await ref.read(authProvider.notifier).signInWithGoogleDemo();
+                          if (success) {
+                            if (ctx.mounted) Navigator.of(ctx).pop(true);
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Signed in with Demo account! Returning to cart.'),
+                                  backgroundColor: AppColors.primary,
+                                ),
+                              );
+                              router.go('/cart');
+                            }
+                          } else {
+                            if (ctx.mounted) {
+                              setModalState(() {
+                                isLoading = false;
+                                localError = 'Demo sign-in failed.';
+                              });
+                            }
+                          }
+                        },
+                  icon: const Icon(Icons.flash_on, size: 16, color: AppColors.primary),
+                  label: const Text(
+                    'Try Quick Demo Sign-In',
+                    style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.of(ctx).pop(false),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           ),
@@ -261,8 +354,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     final authState = ref.read(authProvider);
     if (!authState.isAuthenticated) {
-      final loggedIn = await _showLoginDialog(context);
-      if (!loggedIn || !mounted) return;
+      await _showLoginDialog(context);
+      return;
     }
 
     final phone = _phoneController.text.trim().replaceAll(RegExp(r'\D'), '');
@@ -348,6 +441,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      final user = next.user;
+      if (user != null) {
+        if (user.displayName.isNotEmpty && user.displayName != 'Valued Customer') {
+          _nameController.text = user.displayName;
+        }
+        if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) {
+          final digits = user.phoneNumber!.replaceAll(RegExp(r'\D'), '');
+          final cleanPhone = digits.length > 10 ? digits.substring(digits.length - 10) : digits;
+          if (cleanPhone.isNotEmpty) {
+            _phoneController.text = cleanPhone;
+          }
+        }
+      }
+    });
+
     final subtotal = ref.watch(cartSubtotalProvider);
     final deliveryFee = _fulfillmentMethod == 'PICKUP'
         ? 0.0
@@ -388,38 +497,33 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   ),
                 ),
 
-              // 1. Fulfillment Method Selector
+              // 1. Fulfillment Method Selector (Local Delivery Disabled)
               const Text('1. Fulfillment Method', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               const SizedBox(height: AppDimensions.sm),
               Row(
                 children: [
                   Expanded(
-                    child: InkWell(
-                      onTap: _settings.isDeliveryEnabled
-                          ? () => setState(() => _fulfillmentMethod = 'DELIVERY')
-                          : null,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-                        decoration: BoxDecoration(
-                          color: _fulfillmentMethod == 'DELIVERY' ? AppColors.surfaceVariant : Colors.white,
-                          border: Border.all(
-                            color: _fulfillmentMethod == 'DELIVERY' ? AppColors.primary : AppColors.border,
-                            width: _fulfillmentMethod == 'DELIVERY' ? 2 : 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.local_shipping_outlined, color: Colors.grey.shade400, size: 24),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Local Delivery',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey.shade500),
                           ),
-                          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                        ),
-                        child: Column(
-                          children: [
-                            const Icon(Icons.local_shipping_outlined, color: AppColors.primary, size: 24),
-                            const SizedBox(height: 6),
-                            const Text('Local Delivery', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtotal >= _settings.freeDeliveryThreshold ? 'FREE delivery' : '₹30 fee',
-                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Currently unavailable',
+                            style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -430,10 +534,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
                         decoration: BoxDecoration(
-                          color: _fulfillmentMethod == 'PICKUP' ? AppColors.surfaceVariant : Colors.white,
+                          color: AppColors.surfaceVariant,
                           border: Border.all(
-                            color: _fulfillmentMethod == 'PICKUP' ? AppColors.primary : AppColors.border,
-                            width: _fulfillmentMethod == 'PICKUP' ? 2 : 1,
+                            color: AppColors.primary,
+                            width: 2,
                           ),
                           borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                         ),
@@ -630,9 +734,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_settings.storeName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        Text(
+                          _settings.storeName.isNotEmpty ? _settings.storeName : 'Kanhaiya General Store',
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                        ),
                         const SizedBox(height: 2),
-                        Text(_settings.storeAddress, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text(
+                          (_settings.storeAddress.isNotEmpty && !_settings.storeAddress.contains('New Delhi'))
+                              ? _settings.storeAddress
+                              : 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
                         const SizedBox(height: 6),
                         Text(
                           'Pickup Policy: ${_settings.pickupInstructions}',
@@ -645,99 +757,57 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ],
               const SizedBox(height: AppDimensions.lg),
 
-              // 4. Payment Method
+              // 4. Payment Method (Pay at Store enabled, WhatsApp Manual Pay disabled)
               const Text('4. Payment Method', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               const SizedBox(height: AppDimensions.sm),
 
-              // COD
+              // COD / Pay at Store
               Card(
                 shape: RoundedRectangleBorder(
-                  side: BorderSide(
-                    color: _selectedPayment == 'COD' ? AppColors.primary : AppColors.border,
-                    width: _selectedPayment == 'COD' ? 2 : 1,
+                  side: const BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
                   ),
                   borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                 ),
                 child: InkWell(
                   onTap: () => setState(() => _selectedPayment = 'COD'),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppDimensions.md),
+                  child: const Padding(
+                    padding: EdgeInsets.all(AppDimensions.md),
                     child: Row(
                       children: [
                         Icon(
-                          _selectedPayment == 'COD' ? Icons.radio_button_checked : Icons.radio_button_off,
-                          color: _selectedPayment == 'COD' ? AppColors.primary : AppColors.textTertiary,
+                          Icons.radio_button_checked,
+                          color: AppColors.primary,
                         ),
-                        const SizedBox(width: AppDimensions.md),
-                        const Expanded(
+                        SizedBox(width: AppDimensions.md),
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Cash on Delivery (COD)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                              Text('Pay at Store / Pay on Pickup', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                               SizedBox(height: 2),
                               Text(
-                                'Pay cash or UPI upon delivery / store pickup counter. Payment status: PENDING.',
+                                'Pay cash or UPI at the store pickup counter when you collect your items. Payment status: PENDING.',
                                 style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.payments_outlined, color: AppColors.primary),
+                        Icon(Icons.payments_outlined, color: AppColors.primary),
                       ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: AppDimensions.sm),
-
-              // Manual WhatsApp QR
-              if (_settings.isWhatsappQrEnabled)
-                Card(
-                  shape: RoundedRectangleBorder(
-                    side: BorderSide(
-                      color: _selectedPayment == 'WHATSAPP_QR' ? AppColors.primary : AppColors.border,
-                      width: _selectedPayment == 'WHATSAPP_QR' ? 2 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  ),
-                  child: InkWell(
-                    onTap: () => setState(() => _selectedPayment = 'WHATSAPP_QR'),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppDimensions.md),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _selectedPayment == 'WHATSAPP_QR' ? Icons.radio_button_checked : Icons.radio_button_off,
-                            color: _selectedPayment == 'WHATSAPP_QR' ? AppColors.primary : AppColors.textTertiary,
-                          ),
-                          const SizedBox(width: AppDimensions.md),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Manual WhatsApp QR / UPI', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Order placed as PENDING. Request QR on store WhatsApp and share payment screenshot.',
-                                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.qr_code_scanner_outlined, color: AppColors.primary),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               const SizedBox(height: AppDimensions.lg),
 
               // 5. Special Instructions
               TextFormField(
                 controller: _instructionsController,
                 decoration: const InputDecoration(
-                  labelText: 'Delivery Instructions / Notes (Optional)',
-                  hintText: 'e.g. Ring doorbell twice or call upon arrival',
+                  labelText: 'Pickup Notes / Instructions (Optional)',
+                  hintText: 'e.g. Will pick up around 5 PM',
                   isDense: true,
                 ),
               ),

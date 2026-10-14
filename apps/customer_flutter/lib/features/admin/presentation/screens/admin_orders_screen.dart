@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/network/api_error_handler.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../checkout/domain/models/order_model.dart';
 import '../../data/admin_orders_repository.dart';
+import '../../data/admin_catalog_repository.dart';
+import '../../../catalog/domain/models/product_model.dart';
 import 'admin_order_details_screen.dart';
 import '../../../orders/presentation/widgets/invoice_dialog.dart';
 
@@ -95,7 +98,7 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _errorMessage = ApiErrorHandler.getMessage(e);
           _isLoading = false;
         });
       }
@@ -123,21 +126,282 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
     }
   }
 
+  Future<void> _deleteOrder(CustomerOrderModel order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Order #${order.orderNumber}?'),
+        content: const Text(
+          'Are you sure you want to permanently delete this order directly from MongoDB? Any reserved inventory will be automatically restored to the product stock.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete from Mongo', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final repo = ref.read(adminOrdersRepositoryProvider);
+      await repo.deleteAdminOrder(order.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order #${order.orderNumber} deleted and stock restored.')),
+        );
+        _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete order: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _openCreateOrderDialog() async {
+    final nameCtrl = TextEditingController(text: 'In-Store Walk-in');
+    final phoneCtrl = TextEditingController(text: '9999999999');
+    final emailCtrl = TextEditingController();
+    final notesCtrl = TextEditingController(text: 'Admin Counter Order');
+    String fulfillmentMethod = 'STORE_PICKUP';
+    String paymentMethod = 'COD';
+    String paymentStatus = 'PAID';
+    String orderStatus = 'COMPLETED';
+
+    List<ProductModel> catalogProducts = [];
+    bool loadingProducts = true;
+    String? selectedProductId;
+    int selectedQuantity = 1;
+
+    try {
+      final res = await adminCatalogRepository.getProducts(limit: 60);
+      catalogProducts = res['items'] as List<ProductModel>;
+      if (catalogProducts.isNotEmpty) {
+        selectedProductId = catalogProducts.first.id;
+      }
+      loadingProducts = false;
+    } catch (_) {
+      loadingProducts = false;
+    }
+
+    if (!mounted) return;
+
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) {
+          final selectedProd = catalogProducts.where((p) => p.id == selectedProductId).firstOrNull;
+          final totalEst = (selectedProd?.sellingPrice ?? 0) * selectedQuantity;
+
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.add_shopping_cart, color: AppColors.primary),
+                SizedBox(width: 8),
+                Text('Create Manual Order', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(labelText: 'Customer Full Name', border: OutlineInputBorder(), isDense: true),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: phoneCtrl,
+                      decoration: const InputDecoration(labelText: 'Customer Phone (10 digits)', border: OutlineInputBorder(), isDense: true),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: emailCtrl,
+                      decoration: const InputDecoration(labelText: 'Email Address (Optional)', border: OutlineInputBorder(), isDense: true),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('Select Product', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    if (loadingProducts)
+                      const LinearProgressIndicator()
+                    else if (catalogProducts.isEmpty)
+                      const Text('No products available in catalog', style: TextStyle(color: Colors.red, fontSize: 12))
+                    else
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                        initialValue: selectedProductId,
+                        items: catalogProducts.map((p) {
+                          return DropdownMenuItem<String>(
+                            value: p.id,
+                            child: Text(
+                              '${p.name} (${CurrencyFormatter.format(p.sellingPrice)}) - Stock: ${p.stockQuantity}',
+                              style: const TextStyle(fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setDlgState(() => selectedProductId = val);
+                        },
+                      ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Text('Quantity: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, size: 20),
+                          onPressed: selectedQuantity > 1 ? () => setDlgState(() => selectedQuantity--) : null,
+                        ),
+                        Text('$selectedQuantity', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, size: 20),
+                          onPressed: () => setDlgState(() => selectedQuantity++),
+                        ),
+                        const Spacer(),
+                        Text(
+                          'Total: ${CurrencyFormatter.format(totalEst)}',
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(labelText: 'Payment Status', border: OutlineInputBorder(), isDense: true),
+                            initialValue: paymentStatus,
+                            items: const [
+                              DropdownMenuItem(value: 'PAID', child: Text('PAID (Cash/UPI)')),
+                              DropdownMenuItem(value: 'PENDING', child: Text('PENDING')),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) setDlgState(() => paymentStatus = val);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(labelText: 'Order Status', border: OutlineInputBorder(), isDense: true),
+                            initialValue: orderStatus,
+                            items: const [
+                              DropdownMenuItem(value: 'COMPLETED', child: Text('COMPLETED')),
+                              DropdownMenuItem(value: 'CONFIRMED', child: Text('CONFIRMED')),
+                              DropdownMenuItem(value: 'PREPARING', child: Text('PREPARING')),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) setDlgState(() => orderStatus = val);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: notesCtrl,
+                      decoration: const InputDecoration(labelText: 'Order Notes', border: OutlineInputBorder(), isDense: true),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                onPressed: selectedProductId == null
+                    ? null
+                    : () async {
+                        try {
+                          final repo = ref.read(adminOrdersRepositoryProvider);
+                          await repo.createAdminOrder({
+                            'customerName': nameCtrl.text.trim(),
+                            'customerPhone': phoneCtrl.text.trim(),
+                            'customerEmail': emailCtrl.text.trim(),
+                            'customerNotes': notesCtrl.text.trim(),
+                            'fulfillmentMethod': fulfillmentMethod,
+                            'paymentMethod': paymentMethod,
+                            'paymentStatus': paymentStatus,
+                            'orderStatus': orderStatus,
+                            'items': [
+                              {
+                                'productId': selectedProductId,
+                                'quantity': selectedQuantity,
+                              }
+                            ],
+                          });
+                          if (ctx.mounted) Navigator.pop(ctx, true);
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(content: Text('Failed: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
+                            );
+                          }
+                        }
+                      },
+                child: const Text('Place Order', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (created == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order created successfully in MongoDB!'), backgroundColor: AppColors.primary),
+        );
+        _loadData();
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Order Operations & Tracking'),
-        backgroundColor: AppColors.onPrimaryContainer,
+        title: const Text(
+          'Order Operations & Tracking',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        elevation: 1,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add_shopping_cart),
+            tooltip: 'Create New Order',
+            onPressed: _openCreateOrderDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh Orders',
             onPressed: _loadData,
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_shopping_cart),
+        label: const Text('New Order', style: TextStyle(fontWeight: FontWeight.w700)),
+        onPressed: _openCreateOrderDialog,
       ),
       body: RefreshIndicator(
         onRefresh: _loadData,
@@ -591,8 +855,15 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
                         icon: const Icon(Icons.receipt_long, size: 18, color: AppColors.primary),
                         tooltip: 'View Invoice',
                         constraints: const BoxConstraints(),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                         onPressed: () => showOrderInvoiceDialog(context, order),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                        tooltip: 'Delete Order from MongoDB',
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        onPressed: () => _deleteOrder(order),
                       ),
                       const SizedBox(width: 4),
                       Text(

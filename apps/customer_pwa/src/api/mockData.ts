@@ -1,14 +1,14 @@
 import { Category, Product, Order } from '../types';
 
 export const MOCK_CATEGORIES: Category[] = [
-  { id: 'cat-1', name: 'Atta, Flours & Sooji', slug: 'atta-flours', icon: '🌾', itemCount: 18 },
-  { id: 'cat-2', name: 'Rice & Grains', slug: 'rice-grains', icon: '🍚', itemCount: 24 },
-  { id: 'cat-3', name: 'Dals & Pulses', slug: 'dals-pulses', icon: '🥣', itemCount: 32 },
-  { id: 'cat-4', name: 'Oils & Ghee', slug: 'oils-ghee', icon: '🫒', itemCount: 15 },
-  { id: 'cat-5', name: 'Spices & Masalas', slug: 'spices-masalas', icon: '🌶️', itemCount: 40 },
-  { id: 'cat-6', name: 'Milk Products & Breads', slug: 'milk-breads', icon: '🥛', itemCount: 12 },
-  { id: 'cat-7', name: 'Snacks & Biscuits', slug: 'snacks', icon: '🍪', itemCount: 28 },
-  { id: 'cat-8', name: 'Cleaning & Essentials', slug: 'cleaning', icon: '🧼', itemCount: 20 },
+  { id: 'cat-1', name: 'Atta, Flours & Sooji', slug: 'atta-flours', icon: '🌾', itemCount: 1 },
+  { id: 'cat-2', name: 'Rice & Grains', slug: 'rice-grains', icon: '🍚', itemCount: 1 },
+  { id: 'cat-3', name: 'Dals & Pulses', slug: 'dals-pulses', icon: '🥣', itemCount: 1 },
+  { id: 'cat-4', name: 'Oils & Ghee', slug: 'oils-ghee', icon: '🫒', itemCount: 2 },
+  { id: 'cat-5', name: 'Spices & Masalas', slug: 'spices-masalas', icon: '🌶️', itemCount: 0 },
+  { id: 'cat-7', name: 'Snacks & Biscuits', slug: 'snacks', icon: '🍪', itemCount: 0 },
+  { id: 'cat-8', name: 'Cleaning & Household Essentials', slug: 'cleaning', icon: '🧼', itemCount: 0 },
+  { id: 'cat-9', name: 'Personal Care', slug: 'personal-care', icon: '🧴', itemCount: 0 },
 ];
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -23,7 +23,7 @@ export const MOCK_PRODUCTS: Product[] = [
     sellingPrice: 265,
     stockQuantity: 42,
     isAvailable: true,
-    imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=500&q=80',
     description: '100% pure whole wheat flour processed with superior 40-step process for soft, fluffy rotis.',
   },
   {
@@ -37,7 +37,7 @@ export const MOCK_PRODUCTS: Product[] = [
     sellingPrice: 142,
     stockQuantity: 30,
     isAvailable: true,
-    imageUrl: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=500&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1620706857370-e1b9770e8bb1?auto=format&fit=crop&w=500&q=80',
     description: 'Light and healthy refined sunflower oil enriched with vitamins A & D for everyday healthy cooking.',
   },
   {

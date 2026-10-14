@@ -8,7 +8,9 @@ export type NotificationType =
   | 'ORDER_DISPATCHED'
   | 'ORDER_COMPLETED'
   | 'ORDER_CANCELLED'
-  | 'PAYMENT_VERIFIED';
+  | 'PAYMENT_VERIFIED'
+  | 'ADMIN_ALERT'
+  | 'STORE_ANNOUNCEMENT';
 
 export interface INotification extends Document {
   _id: Types.ObjectId;
@@ -22,6 +24,7 @@ export interface INotification extends Document {
   appName?: string;
   logoUrl?: string;
   isRead: boolean;
+  isAdmin?: boolean;
   metadata?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
@@ -74,6 +77,8 @@ const NotificationSchema = new Schema<INotification>(
         'ORDER_COMPLETED',
         'ORDER_CANCELLED',
         'PAYMENT_VERIFIED',
+        'ADMIN_ALERT',
+        'STORE_ANNOUNCEMENT',
       ],
       required: true,
     },
@@ -90,6 +95,11 @@ const NotificationSchema = new Schema<INotification>(
       default: false,
       index: true,
     },
+    isAdmin: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     metadata: {
       type: Schema.Types.Mixed,
       default: {},
@@ -102,6 +112,7 @@ const NotificationSchema = new Schema<INotification>(
 
 NotificationSchema.index({ userId: 1, createdAt: -1 });
 NotificationSchema.index({ customerPhone: 1, createdAt: -1 });
+NotificationSchema.index({ isAdmin: 1, createdAt: -1 });
 
 export const Notification: Model<INotification> =
   mongoose.models.Notification ||

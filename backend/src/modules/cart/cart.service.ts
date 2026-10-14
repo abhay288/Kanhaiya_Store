@@ -141,7 +141,7 @@ export class CartService {
       });
     }
 
-    const deliveryFee = 0; // In-store pickup only (we do not deliver products anywhere)
+    const deliveryFee = 0; // In-store pickup counter orders (free handling)
     const savings = totalMrp > subtotal ? totalMrp - subtotal : 0;
     const isValid = validatedItems.length > 0 && !hasAdjustments && validatedItems.every((i) => i.validQuantity > 0);
 

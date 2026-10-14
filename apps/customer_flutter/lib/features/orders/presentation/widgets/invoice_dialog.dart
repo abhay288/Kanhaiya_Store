@@ -55,12 +55,20 @@ void showOrderInvoiceDialog(BuildContext context, CustomerOrderModel order) {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Fatehpur Roshnai, Kanpur D. UP',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                          'Fatehpur Roshnai, Ground Floor, Sarvankhera',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                         ),
                         Text(
-                          'Phone: +91 9936269347 • kanhaiyaastore@gmail.com',
+                          'Kanpur Dehat, Uttar Pradesh (Code: 09)',
                           style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                        ),
+                        Text(
+                          'FSSAI No. 12722046000057 • GSTIN: 09ANBPL4077E1Z1',
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.primary),
+                        ),
+                        Text(
+                          'PAN: ANBPL4077E • Phone: +91 9936269347',
+                          style: TextStyle(fontSize: 9, color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -156,7 +164,7 @@ void showOrderInvoiceDialog(BuildContext context, CustomerOrderModel order) {
                               const Padding(
                                 padding: EdgeInsets.only(top: 4),
                                 child: Text(
-                                  'Fulfillment: In-Store Pickup Counter (Fatehpur Roshnai, Kanpur D. UP)',
+                                  'Fulfillment: In-Store Pickup Counter (Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, UP)',
                                   style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                                 ),
                               ),

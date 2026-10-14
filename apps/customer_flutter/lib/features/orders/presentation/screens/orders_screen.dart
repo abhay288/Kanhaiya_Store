@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../checkout/data/repositories/checkout_repository.dart';
 import '../../../checkout/domain/models/order_model.dart';
 import '../widgets/invoice_dialog.dart';
@@ -22,10 +24,24 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchOrders();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchOrders();
+    });
   }
 
   Future<void> _fetchOrders() async {
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = null;
+          _orders = [];
+        });
+      }
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -42,8 +58,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final raw = e.toString().replaceAll('Exception: ', '').toLowerCase();
+        String userMsg = 'Unable to load orders. Please check your internet connection.';
+        if (raw.contains('unauthorized') || raw.contains('authentication required')) {
+          userMsg = 'Please sign in to view your order history.';
+        } else if (raw.contains('not found')) {
+          userMsg = 'No orders found for this account.';
+        }
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _errorMessage = userMsg;
           _isLoading = false;
         });
       }
@@ -143,9 +166,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: _getStatusColor(order.orderStatus)),
                                   ),
                                   Text(
-                                    order.fulfillmentMethod == 'PICKUP'
-                                        ? 'Self Pickup at Kanhaiya General Store'
-                                        : 'Home Delivery to registered address',
+                                    'In-Store Pickup at Kanhaiya General Store counter',
                                     style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                                   ),
                                 ],
@@ -200,8 +221,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Delivery Fee', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                          Text(order.deliveryFee == 0 ? 'FREE' : CurrencyFormatter.format(order.deliveryFee), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          const Text('Pickup Charge', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          const Text('FREE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
                         ],
                       ),
                       const Divider(height: 16),
@@ -251,18 +272,15 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 
   Widget _buildTimeline(CustomerOrderModel order) {
-    final isPickup = order.fulfillmentMethod == 'PICKUP';
-    final steps = isPickup
-        ? ['Placed', 'Confirmed', 'Preparing', 'Ready for Pickup', 'Picked Up']
-        : ['Placed', 'Confirmed', 'Preparing', 'Out for Delivery', 'Delivered'];
+    const steps = ['Placed', 'Confirmed', 'Preparing', 'Ready for Pickup', 'Picked Up'];
 
     final curStatus = order.orderStatus.toUpperCase();
     int currentStep = 0;
     if (curStatus == 'PLACED') currentStep = 0;
     if (curStatus == 'CONFIRMED') currentStep = 1;
     if (curStatus == 'PREPARING') currentStep = 2;
-    if (curStatus == 'READY_FOR_PICKUP' || curStatus == 'OUT_FOR_DELIVERY') currentStep = 3;
-    if (curStatus == 'COMPLETED') currentStep = 4;
+    if (curStatus == 'READY_FOR_PICKUP') currentStep = 3;
+    if (curStatus == 'COMPLETED' || curStatus == 'PICKED_UP') currentStep = 4;
     if (curStatus == 'CANCELLED') currentStep = -1;
 
     return Column(
@@ -318,6 +336,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -329,45 +349,100 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _fetchOrders,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-            : _errorMessage != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppDimensions.lg),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                          const SizedBox(height: 12),
-                          Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.error)),
-                          const SizedBox(height: 16),
-                          ElevatedButton(onPressed: _fetchOrders, child: const Text('Retry')),
-                        ],
+      body: !authState.isAuthenticated
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppDimensions.lg),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.account_circle_outlined, size: 64, color: AppColors.primary),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Sign In to View Orders',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Please sign in to see your in-store pickup orders and download invoices.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () => context.push('/signin'),
+                      icon: const Icon(Icons.login),
+                      label: const Text('Sign In with Google'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       ),
                     ),
-                  )
-                : _orders.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.shopping_bag_outlined, size: 56, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'No orders placed yet',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                  ],
+                ),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _fetchOrders,
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                  : _errorMessage != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppDimensions.lg),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _fetchOrders,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Your grocery purchases will appear here.',
-                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      )
+                          ),
+                        )
+                      : _orders.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppDimensions.lg),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.shopping_bag_outlined, size: 56, color: Colors.grey.shade400),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'No orders yet',
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Your in-store pickup orders will appear here.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    ElevatedButton(
+                                      onPressed: () => context.go('/'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                      ),
+                                      child: const Text('Browse Store'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
                     : ListView.separated(
                         padding: const EdgeInsets.all(AppDimensions.md),
                         itemCount: _orders.length,

@@ -126,6 +126,17 @@ export const ProductListPage: React.FC<ProductListPageProps> = ({
     return () => clearTimeout(timer);
   }, [fetchCatalog]);
 
+  // Real-time catalog updates when admin uploads or edits products
+  useEffect(() => {
+    const handleCatalogUpdate = () => {
+      fetchCatalog(1, false);
+    };
+    window.addEventListener('kgs_catalog_updated', handleCatalogUpdate);
+    return () => {
+      window.removeEventListener('kgs_catalog_updated', handleCatalogUpdate);
+    };
+  }, [fetchCatalog]);
+
   const handleLoadMore = () => {
     if (page < totalPages && !isIncrementalLoading) {
       fetchCatalog(page + 1, true);

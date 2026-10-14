@@ -14,7 +14,23 @@
       },
       "oauth_client": [
         {
-          "client_id": "359309992004-fpqosvahke7ks07q6d0cos6183vkcdp4.apps.googleusercontent.com",
+          "client_id": "359309992004-fa1ofc6klb25pt44u69rfhgf1d2ql4iq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kanhaiya.store.customer_flutter",
+            "certificate_hash": "3c30f4837abc64b6b7cae567b8ae2e2965e96c63"
+          }
+        },
+        {
+          "client_id": "359309992004-h5lejotevtn5feqabup050rrao8gb43q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kanhaiya.store.customer_flutter",
+            "certificate_hash": "a2f944f4869cd5fc13624f5f35a21773701aa0f2"
+          }
+        },
+        {
+          "client_id": "359309992004-jrcn6o638tefgln6bkre3bhgfaomcur8.apps.googleusercontent.com",
           "client_type": 3
         }
       ],

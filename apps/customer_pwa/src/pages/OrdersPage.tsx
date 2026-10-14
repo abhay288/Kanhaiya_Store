@@ -3,12 +3,13 @@ import {
   Clock,
   Package,
   FileText,
-  MapPin,
   Store,
   X,
   ExternalLink,
   RefreshCw,
   CheckCircle,
+  UserCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { repository } from '../api/productRepository';
 import { apiClient } from '../api/client';
@@ -57,37 +58,38 @@ interface OrderDetail {
   date?: string;
 }
 
-export const OrdersPage: React.FC = () => {
+interface OrdersPageProps {
+  onBrowseStore?: () => void;
+  onSignIn?: () => void;
+}
+
+export const OrdersPage: React.FC<OrdersPageProps> = ({ onBrowseStore, onSignIn }) => {
   const [orders, setOrders] = useState<OrderDetail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [trackingData, setTrackingData] = useState<any | null>(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
   const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      const token = apiClient.getToken();
-      if (token) {
-        const res = await fetch('/api/v1/orders', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (Array.isArray(json.data)) {
-            setOrders(json.data);
-            setLoading(false);
-            return;
-          }
-        }
-      }
+    const token = apiClient.getToken();
+    if (!token) {
+      setIsGuest(true);
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
 
-      // Fallback
-      const fallback = await repository.getOrders();
-      setOrders(fallback as any);
+    setIsGuest(false);
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const data = await repository.getOrders(token);
+      setOrders(data as any);
     } catch {
-      // Fallback
+      setErrorMessage('Unable to load orders. Please check your internet connection.');
     } finally {
       setLoading(false);
     }
@@ -209,7 +211,7 @@ export const OrdersPage: React.FC = () => {
         Track real-time fulfillment status and download PDF invoices
       </p>
 
-      {orders.length === 0 ? (
+      {isGuest ? (
         <div
           style={{
             textAlign: 'center',
@@ -219,11 +221,91 @@ export const OrdersPage: React.FC = () => {
             border: '1px solid var(--border)',
           }}
         >
-          <Package size={44} color="#94a3b8" style={{ marginBottom: '12px' }} />
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '6px' }}>No orders yet</h3>
-          <p style={{ fontSize: '0.8rem', color: '#64748b' }}>
-            Browse our grocery catalog and place your first order.
+          <UserCheck size={48} color="#166534" style={{ marginBottom: '12px' }} />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#174D3A', marginBottom: '6px' }}>
+            Sign In to View Orders
+          </h3>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '18px' }}>
+            Please sign in to see your in-store pickup orders and download invoices.
           </p>
+          <button
+            onClick={onSignIn}
+            style={{
+              backgroundColor: '#166534',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 22px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Sign In
+          </button>
+        </div>
+      ) : errorMessage ? (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '36px 16px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <AlertCircle size={40} color="#dc2626" style={{ marginBottom: '10px' }} />
+          <p style={{ fontSize: '0.85rem', color: '#991b1b', marginBottom: '14px' }}>
+            {errorMessage}
+          </p>
+          <button
+            onClick={fetchOrders}
+            style={{
+              backgroundColor: '#166534',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '8px 18px',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      ) : orders.length === 0 ? (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '48px 16px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <Package size={48} color="#94a3b8" style={{ marginBottom: '12px' }} />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#174D3A', marginBottom: '6px' }}>
+            No orders yet
+          </h3>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '18px' }}>
+            Your in-store pickup orders will appear here.
+          </p>
+          <button
+            onClick={onBrowseStore}
+            style={{
+              backgroundColor: '#166534',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 22px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Browse Store
+          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -442,24 +524,17 @@ export const OrdersPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Fulfillment Destination Card */}
+                {/* Store Pickup Location Card */}
                 <div style={{ fontSize: '0.8rem', padding: '12px', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '16px' }}>
                   <div style={{ fontWeight: 700, color: '#174D3A', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {selectedOrder.fulfillmentMethod === 'DELIVERY' ? <MapPin size={16} /> : <Store size={16} />}
-                    {selectedOrder.fulfillmentMethod === 'DELIVERY' ? 'Delivery Address' : 'Store Pickup Location'}
+                    <Store size={16} /> Store Pickup Location
                   </div>
-                  {selectedOrder.fulfillmentMethod === 'DELIVERY' && selectedOrder.deliveryAddress ? (
-                    <div>
-                      {selectedOrder.deliveryAddress.houseNumber}, {selectedOrder.deliveryAddress.street}, {selectedOrder.deliveryAddress.city} ({selectedOrder.deliveryAddress.pincode})
+                  <div>
+                    <strong>Kanhaiya General Store</strong> • Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat
+                    <div style={{ color: '#174D3A', marginTop: '2px', fontSize: '0.75rem' }}>
+                      Collect order at store counter using order #{selectedOrder.orderNumber}
                     </div>
-                  ) : (
-                    <div>
-                      <strong>Kanhaiya General Store</strong> • House 42, Main Bazar, Near City Post Office
-                      <div style={{ color: '#174D3A', marginTop: '2px', fontSize: '0.75rem' }}>
-                        Collect order at store counter using order #{selectedOrder.orderNumber}
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Action Buttons */}

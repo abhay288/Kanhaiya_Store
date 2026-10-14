@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, Package, PlusCircle, FileText, CheckCircle, 
-  AlertCircle, Printer, Share2, Upload, Trash2, Image as ImageIcon, 
-  Phone, Mail, MapPin, RefreshCw, X, Store
+import {
+  ArrowLeft, Package, PlusCircle, FileText, CheckCircle,
+  AlertCircle, Printer, Share2, Upload, Trash2, Image as ImageIcon,
+  Phone, Mail, MapPin, RefreshCw, X, Store, Users, Plus, Eye, Bell
 } from 'lucide-react';
 import { apiClient } from '../api/client';
+import { AdminProductsManagement } from '../components/admin/AdminProductsManagement';
+import { AdminUsersManagement } from '../components/admin/AdminUsersManagement';
+import { AdminCreateOrderModal } from '../components/admin/AdminCreateOrderModal';
+import { NotificationsModal } from '../components/common/NotificationsModal';
 
 interface AdminDashboardPageProps {
   onBack: () => void;
 }
 
 export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'orders' | 'addProduct' | 'settings'>('orders');
-  
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'addProduct' | 'users' | 'settings'>('orders');
+
   // Orders State
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -20,6 +24,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
+
+  // Admin Notification State for Immediate Customer Order Alerts
+  const [adminNotifications, setAdminNotifications] = useState<any[]>([]);
+  const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
   // Add Product State
   const [productName, setProductName] = useState('');
@@ -37,11 +49,32 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
   const [uploadingPhotoIndex, setUploadingPhotoIndex] = useState<number | null>(null);
   const [submittingProduct, setSubmittingProduct] = useState(false);
   const [productSuccessMsg, setProductSuccessMsg] = useState<string | null>(null);
+  const [recentlyCreatedProduct, setRecentlyCreatedProduct] = useState<any | null>(null);
 
-  // Load orders on mount
+  // Load orders and admin notifications on mount with real-time polling
   useEffect(() => {
     fetchOrders();
+    fetchAdminNotifications();
+
+    const interval = setInterval(() => {
+      fetchAdminNotifications();
+    }, 20000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchAdminNotifications = async () => {
+    try {
+      const res = await apiClient.getNotifications(undefined, true);
+      if (res.data) {
+        setAdminNotifications(res.data);
+        const unread = res.data.filter((n: any) => !n.isRead).length;
+        setUnreadAlertsCount(unread);
+      }
+    } catch {
+      // Background poll silently resumes
+    }
+  };
 
   const fetchOrders = async () => {
     setLoadingOrders(true);
@@ -55,9 +88,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
       }
     } catch (err: unknown) {
       const e = err as { message?: string };
-      setActionMsg({ 
-        type: 'error', 
-        text: `Failed to load orders: ${e?.message || 'Check connection'}` 
+      setActionMsg({
+        type: 'error',
+        text: `Failed to load orders: ${e?.message || 'Check connection'}`
       });
     } finally {
       setLoadingOrders(false);
@@ -84,10 +117,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
       setActionMsg({ type: 'success', text: 'WhatsApp payment marked as VERIFIED' });
       fetchOrders();
       if (selectedOrderForInvoice && selectedOrderForInvoice._id === orderId) {
-        setSelectedOrderForInvoice({ 
-          ...selectedOrderForInvoice, 
-          paymentStatus: 'PAID', 
-          paymentVerificationStatus: 'VERIFIED' 
+        setSelectedOrderForInvoice({
+          ...selectedOrderForInvoice,
+          paymentStatus: 'PAID',
+          paymentVerificationStatus: 'VERIFIED'
         });
       }
     } catch (err: unknown) {
@@ -102,14 +135,29 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
       setActionMsg({ type: 'success', text: 'Cash payment marked as COLLECTED' });
       fetchOrders();
       if (selectedOrderForInvoice && selectedOrderForInvoice._id === orderId) {
-        setSelectedOrderForInvoice({ 
-          ...selectedOrderForInvoice, 
-          paymentStatus: 'PAID' 
+        setSelectedOrderForInvoice({
+          ...selectedOrderForInvoice,
+          paymentStatus: 'PAID'
         });
       }
     } catch (err: unknown) {
       const e = err as { message?: string };
       setActionMsg({ type: 'error', text: e?.message || 'COD collection failed' });
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    setIsDeletingOrder(true);
+    try {
+      await apiClient.deleteOrder(orderId);
+      setActionMsg({ type: 'success', text: 'Order permanently deleted and product inventory restored.' });
+      fetchOrders();
+      setDeletingOrderId(null);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setActionMsg({ type: 'error', text: `Failed to delete order: ${e?.message || 'Error'}` });
+    } finally {
+      setIsDeletingOrder(false);
     }
   };
 
@@ -224,8 +272,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
         isPublished: true,
       };
 
-      await apiClient.createProduct(payload);
-      setProductSuccessMsg(`✅ Product "${productName}" added successfully to store catalog!`);
+      const res = await apiClient.createProduct(payload);
+      const createdProd = res.data;
+
+      // Real-time catalog update across all store views
+      window.dispatchEvent(
+        new CustomEvent('kgs_catalog_updated', { detail: { product: createdProd } })
+      );
+
+      setRecentlyCreatedProduct(createdProd);
+      setProductSuccessMsg(`✅ Product "${productName}" is now LIVE on store! Dedicated product page created automatically.`);
       // Reset form
       setProductName('');
       setBrand('');
@@ -247,8 +303,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
   const filteredOrders = orders.filter((o) => {
     const matchesStatus = statusFilter === 'ALL' || o.orderStatus === statusFilter;
     const q = searchQuery.toLowerCase().trim();
-    const matchesQuery = 
-      !q || 
+    const matchesQuery =
+      !q ||
       (o.orderNumber && o.orderNumber.toLowerCase().includes(q)) ||
       (o.customerPhone && o.customerPhone.includes(q)) ||
       (o.customerName && o.customerName.toLowerCase().includes(q));
@@ -258,51 +314,228 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
   return (
     <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto', color: 'var(--text-main)' }}>
       {/* Admin Top Navigation & Header */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: '16px',
           paddingBottom: '12px',
           borderBottom: '1px solid var(--border)'
         }}
       >
-        <button
-          onClick={onBack}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            color: 'var(--primary)',
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-          }}
-        >
-          <ArrowLeft size={18} /> Exit Admin
-        </button>
-
-        <div style={{ textAlign: 'right' }}>
-          <span 
-            style={{ 
-              fontSize: '0.72rem', 
-              fontWeight: 800, 
-              backgroundColor: '#dcfce7', 
-              color: '#166534', 
-              padding: '3px 8px', 
-              borderRadius: '6px' 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={onBack}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              color: 'var(--primary)',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontSize: '0.9rem',
             }}
           >
-            👑 Store Manager Console
-          </span>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-            Fatehpur Roshnai, Kanpur D. UP
+            <ArrowLeft size={18} /> Exit Admin
+          </button>
+
+          {/* Admin Customer Order Alerts Bell */}
+          <button
+            onClick={() => setShowNotificationsModal(true)}
+            style={{
+              position: 'relative',
+              background: '#f1f5f9',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              color: unreadAlertsCount > 0 ? '#b91c1c' : 'var(--text-main)',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+            }}
+            title="Customer Order Alerts"
+          >
+            <Bell size={16} />
+            <span>Alerts</span>
+            {unreadAlertsCount > 0 && (
+              <span
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.65rem',
+                  fontWeight: 900,
+                  borderRadius: '10px',
+                  minWidth: '16px',
+                  height: '16px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                }}
+              >
+                {unreadAlertsCount > 9 ? '9+' : unreadAlertsCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img
+            src="/logo.png"
+            alt="Kanhaiya General Store Logo"
+            style={{
+              width: '44px',
+              height: '44px',
+              objectFit: 'contain',
+              borderRadius: '8px',
+              backgroundColor: '#ffffff',
+              padding: '2px',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.08)',
+              border: '1px solid var(--border)',
+              flexShrink: 0,
+            }}
+          />
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-main)' }}>
+                Kanhaiya General Store
+              </span>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  backgroundColor: '#dcfce7',
+                  color: '#166534',
+                  padding: '2px 6px',
+                  borderRadius: '4px'
+                }}
+              >
+                Store Admin
+              </span>
+            </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+              Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Live Customer Order Notification Alert Banner */}
+      {(() => {
+        const latestOrderAlert = adminNotifications.find(
+          n => !n.isRead && (n.type === 'ADMIN_ALERT' || n.isAdmin)
+        );
+        if (!latestOrderAlert) return null;
+        return (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: '12px',
+              marginBottom: '16px',
+              fontSize: '0.84rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              backgroundColor: '#fef2f2',
+              color: '#991b1b',
+              border: '1.5px solid #f87171',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.12)',
+            }}
+          >
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '8px',
+                backgroundColor: '#ef4444',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Bell size={18} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#7f1d1d' }}>
+                  {latestOrderAlert.title}
+                </span>
+                <span style={{ fontSize: '0.72rem', backgroundColor: '#fee2e2', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                  Live Order Alert
+                </span>
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#991b1b', marginTop: '2px', lineHeight: 1.3 }}>
+                {latestOrderAlert.message}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                onClick={() => {
+                  setActiveTab('orders');
+                  if (latestOrderAlert.orderNumber) {
+                    setSearchQuery(latestOrderAlert.orderNumber);
+                  }
+                  fetchOrders();
+                  apiClient.markNotificationRead(latestOrderAlert._id || latestOrderAlert.id);
+                  setAdminNotifications(prev =>
+                    prev.map(n =>
+                      n._id === latestOrderAlert._id || n.id === latestOrderAlert.id
+                        ? { ...n, isRead: true }
+                        : n
+                    )
+                  );
+                  setUnreadAlertsCount(prev => Math.max(0, prev - 1));
+                }}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                View Order
+              </button>
+              <button
+                onClick={() => {
+                  apiClient.markNotificationRead(latestOrderAlert._id || latestOrderAlert.id);
+                  setAdminNotifications(prev =>
+                    prev.map(n =>
+                      n._id === latestOrderAlert._id || n.id === latestOrderAlert.id
+                        ? { ...n, isRead: true }
+                        : n
+                    )
+                  );
+                  setUnreadAlertsCount(prev => Math.max(0, prev - 1));
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#991b1b',
+                  cursor: 'pointer',
+                  padding: '4px',
+                }}
+                title="Dismiss"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Action Messages */}
       {actionMsg && (
@@ -323,8 +556,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
         >
           {actionMsg.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
           <span>{actionMsg.text}</span>
-          <button 
-            onClick={() => setActionMsg(null)} 
+          <button
+            onClick={() => setActionMsg(null)}
             style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
           >
             <X size={14} />
@@ -333,12 +566,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
       )}
 
       {/* Admin Tab Switcher */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr 1fr', 
-          gap: '8px', 
-          marginBottom: '20px' 
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: '8px',
+          marginBottom: '20px'
         }}
       >
         <button
@@ -359,7 +592,28 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
           }}
         >
           <FileText size={18} />
-          <span>Orders & Invoices ({orders.length})</span>
+          <span>Orders ({orders.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('products')}
+          style={{
+            padding: '10px 8px',
+            borderRadius: 'var(--radius-md)',
+            border: activeTab === 'products' ? '2px solid var(--primary)' : '1px solid var(--border)',
+            backgroundColor: activeTab === 'products' ? 'var(--primary-subtle)' : 'var(--surface)',
+            color: activeTab === 'products' ? 'var(--primary)' : 'var(--text-main)',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px',
+            cursor: 'pointer',
+          }}
+        >
+          <Package size={18} />
+          <span>Live/Unlive Products</span>
         </button>
 
         <button
@@ -380,7 +634,28 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
           }}
         >
           <PlusCircle size={18} />
-          <span>+ Add Product (3 Photos)</span>
+          <span>+ Add Product</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('users')}
+          style={{
+            padding: '10px 8px',
+            borderRadius: 'var(--radius-md)',
+            border: activeTab === 'users' ? '2px solid var(--primary)' : '1px solid var(--border)',
+            backgroundColor: activeTab === 'users' ? 'var(--primary-subtle)' : 'var(--surface)',
+            color: activeTab === 'users' ? 'var(--primary)' : 'var(--text-main)',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px',
+            cursor: 'pointer',
+          }}
+        >
+          <Users size={18} />
+          <span>Mongo Users</span>
         </button>
 
         <button
@@ -425,6 +700,25 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                 fontSize: '0.82rem',
               }}
             />
+            <button
+              onClick={() => setShowCreateOrderModal(true)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                backgroundColor: 'var(--primary)',
+                color: '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+              }}
+            >
+              <Plus size={14} />
+              <span>+ New Order</span>
+            </button>
             <button
               onClick={fetchOrders}
               disabled={loadingOrders}
@@ -474,20 +768,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               Loading orders from database...
             </div>
           ) : filteredOrders.length === 0 ? (
-            <div 
-              style={{ 
-                textAlign: 'center', 
-                padding: '36px', 
-                backgroundColor: 'var(--surface)', 
-                borderRadius: 'var(--radius-md)', 
-                border: '1px dashed var(--border)' 
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '36px',
+                backgroundColor: 'var(--surface)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px dashed var(--border)'
               }}
             >
               <Package size={36} color="var(--text-muted)" style={{ margin: '0 auto 8px' }} />
               <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>No Orders Found</h4>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                {searchQuery || statusFilter !== 'ALL' 
-                  ? 'No orders match your filter criteria.' 
+                {searchQuery || statusFilter !== 'ALL'
+                  ? 'No orders match your filter criteria.'
                   : 'Customer orders placed in Kanhaiya General Store will appear here in real time.'}
               </p>
             </div>
@@ -521,14 +815,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                               fontWeight: 700,
                               padding: '2px 6px',
                               borderRadius: '4px',
-                              backgroundColor: 
+                              backgroundColor:
                                 order.orderStatus === 'COMPLETED' ? '#dcfce7' :
-                                order.orderStatus === 'CANCELLED' ? '#fee2e2' :
-                                order.orderStatus === 'READY_FOR_PICKUP' ? '#dbeafe' : '#fef3c7',
-                              color: 
+                                  order.orderStatus === 'CANCELLED' ? '#fee2e2' :
+                                    order.orderStatus === 'READY_FOR_PICKUP' ? '#dbeafe' : '#fef3c7',
+                              color:
                                 order.orderStatus === 'COMPLETED' ? '#166534' :
-                                order.orderStatus === 'CANCELLED' ? '#991b1b' :
-                                order.orderStatus === 'READY_FOR_PICKUP' ? '#1e40af' : '#92400e',
+                                  order.orderStatus === 'CANCELLED' ? '#991b1b' :
+                                    order.orderStatus === 'READY_FOR_PICKUP' ? '#1e40af' : '#92400e',
                             }}
                           >
                             {order.orderStatus}
@@ -562,13 +856,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                     </div>
 
                     {/* Customer Info */}
-                    <div 
-                      style={{ 
-                        padding: '8px 10px', 
-                        backgroundColor: '#f8fafc', 
-                        borderRadius: '6px', 
-                        fontSize: '0.78rem', 
-                        marginBottom: '10px' 
+                    <div
+                      style={{
+                        padding: '8px 10px',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        marginBottom: '10px'
                       }}
                     >
                       <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
@@ -587,12 +881,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                     </div>
 
                     {/* Action Bar */}
-                    <div 
-                      style={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
-                        gap: '6px', 
-                        paddingTop: '8px', 
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                        paddingTop: '8px',
                         borderTop: '1px solid var(--border)',
                         alignItems: 'center'
                       }}
@@ -673,6 +967,29 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                           Collect Cash (₹{order.grandTotal ?? order.totalAmount ?? 0})
                         </button>
                       )}
+
+                      {/* Delete Order button */}
+                      <button
+                        onClick={() => setDeletingOrderId(order._id || order.orderNumber)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '6px 10px',
+                          backgroundColor: '#fef2f2',
+                          color: '#dc2626',
+                          border: '1px solid #fecaca',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                        title="Permanently Delete Order from MongoDB"
+                      >
+                        <Trash2 size={13} />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -683,15 +1000,25 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
       )}
 
       {/* ======================================================== */}
-      {/* TAB 2: ADD PRODUCT (WITH UP TO 3 PHOTOS)                 */}
+      {/* TAB 2: PRODUCTS CATALOG (LIVE / UNLIVE MANAGEMENT)       */}
+      {/* ======================================================== */}
+      {activeTab === 'products' && (
+        <AdminProductsManagement
+          onToast={(type, text) => setActionMsg({ type, text })}
+          onNavigateAddProduct={() => setActiveTab('addProduct')}
+        />
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 3: ADD PRODUCT (WITH UP TO 3 PHOTOS)                 */}
       {/* ======================================================== */}
       {activeTab === 'addProduct' && (
-        <div 
-          style={{ 
-            backgroundColor: 'var(--surface)', 
-            padding: '16px', 
-            borderRadius: 'var(--radius-md)', 
-            border: '1px solid var(--border)' 
+        <div
+          style={{
+            backgroundColor: 'var(--surface)',
+            padding: '16px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border)'
           }}
         >
           <div style={{ marginBottom: '16px' }}>
@@ -703,15 +1030,134 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
             </p>
           </div>
 
-          {productSuccessMsg && (
-            <div 
-              style={{ 
-                padding: '10px 14px', 
-                backgroundColor: '#dcfce7', 
-                color: '#166534', 
-                borderRadius: 'var(--radius-sm)', 
-                fontSize: '0.82rem', 
-                fontWeight: 700, 
+          {recentlyCreatedProduct && (
+            <div
+              style={{
+                padding: '16px',
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '18px',
+                boxShadow: '0 2px 6px rgba(22, 101, 52, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: 800, fontSize: '0.98rem' }}>
+                <CheckCircle size={22} color="#16a34a" />
+                <span>🎉 Live Product Page Auto-Created!</span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#14532d', margin: '8px 0 12px', lineHeight: 1.5 }}>
+                <strong>{recentlyCreatedProduct.name}</strong> is published live on the store. Customers can view and purchase it right now.
+                <br />
+                <span style={{ fontSize: '0.76rem', color: '#166534' }}>
+                  Auto-Generated Route:{' '}
+                  <code style={{ backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                    /product/{recentlyCreatedProduct.slug || recentlyCreatedProduct._id}
+                  </code>
+                </span>
+              </p>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent('kgs_view_product', {
+                        detail: {
+                          product: {
+                            id: recentlyCreatedProduct._id || recentlyCreatedProduct.id,
+                            name: recentlyCreatedProduct.name,
+                            slug: recentlyCreatedProduct.slug,
+                            sellingPrice: recentlyCreatedProduct.sellingPrice,
+                            mrp: recentlyCreatedProduct.mrp,
+                            packSize: recentlyCreatedProduct.packSize,
+                            stockQuantity: recentlyCreatedProduct.stockQuantity,
+                            isAvailable: true,
+                            imageUrl: recentlyCreatedProduct.images?.[0]?.url || recentlyCreatedProduct.imageUrl || '',
+                            images: recentlyCreatedProduct.images || [],
+                            description: recentlyCreatedProduct.description,
+                          },
+                        },
+                      })
+                    );
+                    onBack();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    backgroundColor: '#166534',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Eye size={16} /> 👁️ View Live Product Page
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const url = `${window.location.origin}/product/${recentlyCreatedProduct.slug || recentlyCreatedProduct._id}`;
+                    await navigator.clipboard.writeText(url);
+                    setActionMsg({ type: 'success', text: `Product page link copied: ${url}` });
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    backgroundColor: '#fff',
+                    color: '#166534',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Share2 size={15} /> Copy Shareable Link
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecentlyCreatedProduct(null);
+                    setProductSuccessMsg(null);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    backgroundColor: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    marginLeft: 'auto',
+                  }}
+                >
+                  <PlusCircle size={15} /> + Add Another
+                </button>
+              </div>
+            </div>
+          )}
+
+          {productSuccessMsg && !recentlyCreatedProduct && (
+            <div
+              style={{
+                padding: '10px 14px',
+                backgroundColor: '#dcfce7',
+                color: '#166534',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
                 marginBottom: '16px',
                 display: 'flex',
                 alignItems: 'center',
@@ -728,7 +1174,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '6px' }}>
                 📸 Product Photos (Upload up to 3 photos):
               </label>
-              
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '8px' }}>
                 {[0, 1, 2].map((idx) => {
                   const photoUrl = photos[idx];
@@ -1082,12 +1528,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Quick Metrics */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <div 
-              style={{ 
-                padding: '14px', 
-                backgroundColor: 'var(--surface)', 
-                border: '1px solid var(--border)', 
-                borderRadius: 'var(--radius-md)' 
+            <div
+              style={{
+                padding: '14px',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)'
               }}
             >
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>TOTAL ORDERS</div>
@@ -1096,12 +1542,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               </div>
             </div>
 
-            <div 
-              style={{ 
-                padding: '14px', 
-                backgroundColor: 'var(--surface)', 
-                border: '1px solid var(--border)', 
-                borderRadius: 'var(--radius-md)' 
+            <div
+              style={{
+                padding: '14px',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)'
               }}
             >
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>STORE STATUS</div>
@@ -1112,12 +1558,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
           </div>
 
           {/* Official Store Branding Card */}
-          <div 
-            style={{ 
-              padding: '16px', 
-              backgroundColor: 'var(--surface)', 
-              border: '1px solid var(--border)', 
-              borderRadius: 'var(--radius-md)' 
+          <div
+            style={{
+              padding: '16px',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)'
             }}
           >
             <h4 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '12px' }}>
@@ -1135,7 +1581,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <MapPin size={18} color="var(--primary)" />
                 <div>
-                  <strong>Store Location:</strong> Fatehpur Roshnai, Kanpur D. UP
+                  <strong>Store Location:</strong> Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh
                 </div>
               </div>
 
@@ -1156,11 +1602,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
           </div>
 
           {/* Infrastructure Health */}
-          <div 
-            style={{ 
-              padding: '14px', 
-              backgroundColor: 'var(--surface)', 
-              border: '1px solid var(--border)', 
+          <div
+            style={{
+              padding: '14px',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border)',
               borderRadius: 'var(--radius-md)',
               fontSize: '0.78rem'
             }}
@@ -1170,6 +1616,94 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               • Backend API: <strong style={{ color: '#16a34a' }}>https://kanhaiya-store-backend.onrender.com</strong><br />
               • Database: <strong style={{ color: '#16a34a' }}>MongoDB Atlas (Connected)</strong><br />
               • Web Deployment: <strong style={{ color: '#16a34a' }}>Vercel Edge Network</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 4: MONGODB USER MANAGEMENT                           */}
+      {/* ======================================================== */}
+      {activeTab === 'users' && (
+        <AdminUsersManagement
+          onToast={(type, text) => setActionMsg({ type, text })}
+        />
+      )}
+
+      {/* ======================================================== */}
+      {/* CREATE ORDER MODAL                                       */}
+      {/* ======================================================== */}
+      {showCreateOrderModal && (
+        <AdminCreateOrderModal
+          onClose={() => setShowCreateOrderModal(false)}
+          onOrderCreated={() => fetchOrders()}
+          onToast={(type, text) => setActionMsg({ type, text })}
+        />
+      )}
+
+      {/* ======================================================== */}
+      {/* DELETE ORDER CONFIRMATION MODAL                          */}
+      {/* ======================================================== */}
+      {deletingOrderId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            zIndex: 1200,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              color: '#0f172a',
+              borderRadius: 'var(--radius-md)',
+              width: '100%',
+              maxWidth: '420px',
+              padding: '20px',
+              textAlign: 'center',
+            }}
+          >
+            <AlertCircle size={40} color="#dc2626" style={{ margin: '0 auto 10px' }} />
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '6px' }}>Permanently Delete Order?</h3>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '16px' }}>
+              Order #{deletingOrderId} will be permanently removed from MongoDB. If unfulfilled, all item stock quantities will automatically be returned to store inventory.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setDeletingOrderId(null)}
+                style={{
+                  flex: 1,
+                  padding: '9px',
+                  borderRadius: '4px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#f1f5f9',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteOrder(deletingOrderId)}
+                disabled={isDeletingOrder}
+                style={{
+                  flex: 1,
+                  padding: '9px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  backgroundColor: '#dc2626',
+                  color: '#fff',
+                  fontWeight: 800,
+                  cursor: isDeletingOrder ? 'wait' : 'pointer',
+                }}
+              >
+                {isDeletingOrder ? 'Deleting...' : 'Yes, Delete Order'}
+              </button>
             </div>
           </div>
         </div>
@@ -1288,7 +1822,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                   Fresh Essentials & Daily Groceries
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#334155', marginTop: '4px' }}>
-                  📍 Fatehpur Roshnai, Kanpur D. UP
+                  📍 Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#174D3A', fontWeight: 600 }}>
+                  FSSAI No. 12722046000057 • GSTIN: 09ANBPL4077E1Z1 • PAN: ANBPL4077E (Code: 09)
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#334155' }}>
                   📞 Helpline: +91 9936269347 | ✉️ Support: kanhaiyaastore@gmail.com
@@ -1355,14 +1892,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                   <span>Pickup Handling:</span>
                   <span>₹0 (FREE)</span>
                 </div>
-                <div 
-                  style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    padding: '6px 0', 
-                    borderTop: '2px solid #0f172a', 
-                    fontWeight: 900, 
-                    fontSize: '0.95rem' 
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '6px 0',
+                    borderTop: '2px solid #0f172a',
+                    fontWeight: 900,
+                    fontSize: '0.95rem'
                   }}
                 >
                   <span>Grand Total:</span>
@@ -1379,6 +1916,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
           </div>
         </div>
       )}
+
+      {/* Admin Customer Order Alerts Modal */}
+      <NotificationsModal
+        isOpen={showNotificationsModal}
+        onClose={() => setShowNotificationsModal(false)}
+        isAdmin={true}
+        onUnreadCountChange={(c) => setUnreadAlertsCount(c)}
+        onViewOrders={() => {
+          setActiveTab('orders');
+          fetchOrders();
+        }}
+      />
     </div>
   );
 };

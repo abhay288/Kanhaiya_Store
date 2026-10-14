@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 
+import 'package:flutter/services.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -11,10 +13,21 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  static const _channel = MethodChannel('com.kanhaiya.store/notifications');
+
   @override
   void initState() {
     super.initState();
+    _requestNotificationPermission();
     _navigateToNext();
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    try {
+      await _channel.invokeMethod('requestNotificationPermission');
+    } catch (_) {
+      // Ignore if channel is unavailable or on non-Android platform
+    }
   }
 
   Future<void> _navigateToNext() async {

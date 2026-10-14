@@ -1,8 +1,15 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
 import '../../catalog/domain/models/category_model.dart';
 import '../../catalog/domain/models/product_model.dart';
+
+final StreamController<void> catalogUpdateStream = StreamController<void>.broadcast();
+
+void notifyCatalogUpdated() {
+  catalogUpdateStream.add(null);
+}
 
 class AdminCatalogRepository {
   final Dio _dio;
@@ -23,18 +30,21 @@ class AdminCatalogRepository {
   /// Create a new category
   Future<CategoryModel> createCategory(Map<String, dynamic> data) async {
     final response = await _dio.post('/categories', data: data);
+    notifyCatalogUpdated();
     return CategoryModel.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
   /// Update an existing category
   Future<CategoryModel> updateCategory(String id, Map<String, dynamic> data) async {
     final response = await _dio.patch('/categories/$id', data: data);
+    notifyCatalogUpdated();
     return CategoryModel.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
   /// Delete a category
   Future<void> deleteCategory(String id) async {
     await _dio.delete('/categories/$id');
+    notifyCatalogUpdated();
   }
 
   /// Upload an image to Cloudinary via backend server
@@ -106,23 +116,27 @@ class AdminCatalogRepository {
   /// Create product
   Future<ProductModel> createProduct(Map<String, dynamic> data) async {
     final response = await _dio.post('/products', data: data);
+    notifyCatalogUpdated();
     return ProductModel.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
   /// Update product
   Future<ProductModel> updateProduct(String id, Map<String, dynamic> data) async {
     final response = await _dio.patch('/products/$id', data: data);
+    notifyCatalogUpdated();
     return ProductModel.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
   /// Toggle product publication
   Future<void> togglePublish(String id, bool isPublished) async {
     await _dio.patch('/products/$id/publish', data: {'isPublished': isPublished});
+    notifyCatalogUpdated();
   }
 
   /// Delete product
   Future<void> deleteProduct(String id) async {
     await _dio.delete('/products/$id');
+    notifyCatalogUpdated();
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/network/api_error_handler.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../data/admin_analytics_repository.dart';
 
@@ -72,7 +73,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen>
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _errorMessage = ApiErrorHandler.getMessage(e);
           _isLoading = false;
         });
       }
@@ -99,7 +100,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Export failed: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -110,9 +111,13 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text('Store Reports & Audits'),
-        backgroundColor: AppColors.onPrimaryContainer,
+        title: const Text(
+          'Store Reports & Audits',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        elevation: 1,
         actions: [
           IconButton(
             icon: const Icon(Icons.file_download_outlined),

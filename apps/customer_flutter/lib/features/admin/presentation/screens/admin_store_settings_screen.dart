@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/network/api_error_handler.dart';
 import '../../data/admin_analytics_repository.dart';
 
 class AdminStoreSettingsScreen extends ConsumerStatefulWidget {
@@ -12,6 +13,7 @@ class AdminStoreSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScreen> {
+  final _formKey = GlobalKey<FormState>();
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
@@ -24,11 +26,6 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
   final _supportEmailCtrl = TextEditingController();
   final _supportHoursCtrl = TextEditingController();
   final _operatingHoursCtrl = TextEditingController();
-
-  final _pincodesCtrl = TextEditingController();
-  final _deliveryFeeCtrl = TextEditingController();
-  final _freeDeliveryThresholdCtrl = TextEditingController();
-  final _minOrderValueCtrl = TextEditingController();
   final _pickupInstructionsCtrl = TextEditingController();
 
   final _storeUpiIdCtrl = TextEditingController();
@@ -37,9 +34,7 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
   final _invoicePrefixCtrl = TextEditingController();
   final _gstinCtrl = TextEditingController();
 
-  bool _isDeliveryEnabled = true;
   bool _isPickupEnabled = true;
-  bool _isCodEnabled = true;
   bool _isWhatsappQrEnabled = true;
   bool _adminOrderAlerts = true;
   bool _lowStockAlerts = true;
@@ -60,10 +55,6 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
     _supportEmailCtrl.dispose();
     _supportHoursCtrl.dispose();
     _operatingHoursCtrl.dispose();
-    _pincodesCtrl.dispose();
-    _deliveryFeeCtrl.dispose();
-    _freeDeliveryThresholdCtrl.dispose();
-    _minOrderValueCtrl.dispose();
     _pickupInstructionsCtrl.dispose();
     _storeUpiIdCtrl.dispose();
     _paymentInstructionsCtrl.dispose();
@@ -93,15 +84,9 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
           _supportHoursCtrl.text = s.supportHours ?? '';
           _operatingHoursCtrl.text = s.operatingHours ?? '';
 
-          _isDeliveryEnabled = s.isDeliveryEnabled;
           _isPickupEnabled = s.isPickupEnabled;
-          _pincodesCtrl.text = s.serviceablePincodes.join(', ');
-          _deliveryFeeCtrl.text = s.standardDeliveryFee.toString();
-          _freeDeliveryThresholdCtrl.text = s.freeDeliveryThreshold.toString();
-          _minOrderValueCtrl.text = s.minOrderValue.toString();
           _pickupInstructionsCtrl.text = s.pickupInstructions;
 
-          _isCodEnabled = s.isCodEnabled;
           _isWhatsappQrEnabled = s.isWhatsappQrEnabled;
           _storeUpiIdCtrl.text = s.storeUpiId;
           _paymentInstructionsCtrl.text = s.paymentInstructions ?? '';
@@ -119,7 +104,7 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _errorMessage = ApiErrorHandler.getMessage(e);
           _isLoading = false;
         });
       }
@@ -127,15 +112,13 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
   }
 
   Future<void> _saveSettings() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
-      final rawPins = _pincodesCtrl.text
-          .split(',')
-          .map((p) => p.trim())
-          .where((p) => p.isNotEmpty)
-          .toList();
-
       final payload = {
         'storeName': _storeNameCtrl.text.trim(),
         'storePhone': _storePhoneCtrl.text.trim(),
@@ -144,14 +127,10 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
         'supportEmail': _supportEmailCtrl.text.trim(),
         'supportHours': _supportHoursCtrl.text.trim(),
         'operatingHours': _operatingHoursCtrl.text.trim(),
-        'isDeliveryEnabled': _isDeliveryEnabled,
         'isPickupEnabled': _isPickupEnabled,
-        'serviceablePincodes': rawPins,
-        'standardDeliveryFee': double.tryParse(_deliveryFeeCtrl.text.trim()) ?? 30.0,
-        'freeDeliveryThreshold': double.tryParse(_freeDeliveryThresholdCtrl.text.trim()) ?? 500.0,
-        'minOrderValue': double.tryParse(_minOrderValueCtrl.text.trim()) ?? 100.0,
+        'isDeliveryEnabled': false, // In-store pickup only kirana business
         'pickupInstructions': _pickupInstructionsCtrl.text.trim(),
-        'isCodEnabled': _isCodEnabled,
+        'isCodEnabled': true,
         'isWhatsappQrEnabled': _isWhatsappQrEnabled,
         'storeUpiId': _storeUpiIdCtrl.text.trim(),
         'paymentInstructions': _paymentInstructionsCtrl.text.trim(),
@@ -169,14 +148,20 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Store settings saved successfully.'), backgroundColor: AppColors.primary),
+          const SnackBar(
+            content: Text('Store settings updated and persisted successfully.'),
+            backgroundColor: AppColors.primary,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save settings: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(ApiErrorHandler.getMessage(e)),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
@@ -188,128 +173,215 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('Store Operating Settings'),
-        backgroundColor: AppColors.onPrimaryContainer,
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadSettings),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Reload settings',
+            onPressed: _isLoading ? null : _loadSettings,
+          ),
         ],
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(AppDimensions.md),
-        color: Colors.white,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
         child: SizedBox(
           width: double.infinity,
           height: 48,
           child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: (_isLoading || _isSaving) ? null : _saveSettings,
             icon: _isSaving
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Icon(Icons.save, color: Colors.white),
-            label: Text(_isSaving ? 'Saving...' : 'Save Settings', style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+            label: Text(
+              _isSaving ? 'Saving Settings...' : 'Save Store Settings',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            ),
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : _errorMessage != null
-              ? Center(child: Text(_errorMessage!, style: const TextStyle(color: AppColors.error)))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppDimensions.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 1. Business Profile
-                      _buildSectionCard('Business Profile & Contact', [
-                        _buildTextField(_storeNameCtrl, 'Store Display Name'),
-                        _buildTextField(_storePhoneCtrl, 'Primary Store Phone'),
-                        _buildTextField(_storeWhatsappCtrl, 'WhatsApp Business Number'),
-                        _buildTextField(_storeAddressCtrl, 'Physical Store Address', maxLines: 2),
-                        _buildTextField(_supportEmailCtrl, 'Customer Support Email'),
-                        _buildTextField(_supportHoursCtrl, 'Support Operating Hours'),
-                        _buildTextField(_operatingHoursCtrl, 'Store Hours (Counter)'),
-                      ]),
-                      const SizedBox(height: 12),
+      body: _buildBody(),
+    );
+  }
 
-                      // 2. Fulfillment Configuration
-                      _buildSectionCard('Fulfillment & Delivery Rules', [
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Local Home Delivery Available', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          value: _isDeliveryEnabled,
-                          activeThumbColor: AppColors.primary,
-                          onChanged: (val) => setState(() => _isDeliveryEnabled = val),
-                        ),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Store Counter Pickup Available', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          value: _isPickupEnabled,
-                          activeThumbColor: AppColors.primary,
-                          onChanged: (val) => setState(() => _isPickupEnabled = val),
-                        ),
-                        const Divider(),
-                        _buildTextField(_pincodesCtrl, 'Serviceable PIN Codes (Comma-separated)', hint: '110001, 110002, 110084'),
-                        _buildTextField(_deliveryFeeCtrl, 'Standard Delivery Fee (INR)', keyboardType: TextInputType.number),
-                        _buildTextField(_freeDeliveryThresholdCtrl, 'Free Delivery Order Threshold (INR)', keyboardType: TextInputType.number),
-                        _buildTextField(_minOrderValueCtrl, 'Minimum Order Value (INR)', keyboardType: TextInputType.number),
-                        _buildTextField(_pickupInstructionsCtrl, 'Store Counter Pickup Instructions', maxLines: 2),
-                      ]),
-                      const SizedBox(height: 12),
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: AppColors.primary),
+            SizedBox(height: 12),
+            Text('Loading store operating settings...', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          ],
+        ),
+      );
+    }
 
-                      // 3. Checkout & Payment Settings
-                      _buildSectionCard('Checkout & Payments', [
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Cash on Delivery (COD) Allowed', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          value: _isCodEnabled,
-                          activeThumbColor: AppColors.primary,
-                          onChanged: (val) => setState(() => _isCodEnabled = val),
-                        ),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Manual WhatsApp QR Payment Allowed', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          value: _isWhatsappQrEnabled,
-                          activeThumbColor: AppColors.primary,
-                          onChanged: (val) => setState(() => _isWhatsappQrEnabled = val),
-                        ),
-                        const Divider(),
-                        _buildTextField(_storeUpiIdCtrl, 'Store UPI ID for QR Billing'),
-                        _buildTextField(_paymentInstructionsCtrl, 'Customer Payment Instructions', maxLines: 2),
-                        _buildTextField(_orderPoliciesCtrl, 'Customer-facing Store Policies', maxLines: 2),
-                      ]),
-                      const SizedBox(height: 12),
-
-                      // 4. Notifications & Invoices
-                      _buildSectionCard('Notifications & Invoice Settings', [
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Admin Order Alerts', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          value: _adminOrderAlerts,
-                          activeThumbColor: AppColors.primary,
-                          onChanged: (val) => setState(() => _adminOrderAlerts = val),
-                        ),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Low Stock Alerts', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          value: _lowStockAlerts,
-                          activeThumbColor: AppColors.primary,
-                          onChanged: (val) => setState(() => _lowStockAlerts = val),
-                        ),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Customer Status Push Notifications', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          value: _customerStatusNotifications,
-                          activeThumbColor: AppColors.primary,
-                          onChanged: (val) => setState(() => _customerStatusNotifications = val),
-                        ),
-                        const Divider(),
-                        _buildTextField(_invoicePrefixCtrl, 'Invoice Number Prefix (e.g. INV)'),
-                        _buildTextField(_gstinCtrl, 'Store GSTIN (Leave empty if unverified)'),
-                      ]),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimensions.xl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const SizedBox(height: 12),
+              const Text(
+                'Unable to Load Settings',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _loadSettings,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                 ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppDimensions.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Model Notice
+            Container(
+              padding: const EdgeInsets.all(AppDimensions.md),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFECFDF5),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                border: Border.all(color: const Color(0xFFA7F3D0)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.storefront_outlined, color: AppColors.primary, size: 22),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'KGS Operating Mode: Physical Kirana & In-Store Counter Pickup only.',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 1. Business Profile & Contact
+            _buildSectionCard('1. Business Profile & Store Identity', [
+              _buildTextField(_storeNameCtrl, 'Store Display Name *', required: true),
+              _buildTextField(_storePhoneCtrl, 'Primary Contact Phone *', required: true),
+              _buildTextField(_storeWhatsappCtrl, 'WhatsApp Business Number'),
+              _buildTextField(_storeAddressCtrl, 'Physical Store Counter Address', maxLines: 2),
+            ]),
+            const SizedBox(height: 12),
+
+            // 2. Counter Operations & Hours
+            _buildSectionCard('2. Counter Hours & Customer Support', [
+              _buildTextField(_operatingHoursCtrl, 'Counter Operating Hours (e.g. 8:00 AM - 9:30 PM)'),
+              _buildTextField(_supportEmailCtrl, 'Customer Support Email'),
+              _buildTextField(_supportHoursCtrl, 'Support Helpline Window'),
+            ]),
+            const SizedBox(height: 12),
+
+            // 3. Counter Pickup Instructions & Policy
+            _buildSectionCard('3. In-Store Pickup Policies', [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Store Counter Pickup Available', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                subtitle: const Text('Allow customers to submit in-store pickup orders', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                value: _isPickupEnabled,
+                activeThumbColor: AppColors.primary,
+                onChanged: (val) => setState(() => _isPickupEnabled = val),
+              ),
+              const Divider(),
+              _buildTextField(_pickupInstructionsCtrl, 'Pickup Counter Instructions for Customers', maxLines: 3),
+              _buildTextField(_orderPoliciesCtrl, 'Counter Return & Inspection Policy', maxLines: 2),
+            ]),
+            const SizedBox(height: 12),
+
+            // 4. Notifications & Operational Alerts
+            _buildSectionCard('4. Operational Alerts & Notifications', [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('New Order Sound & In-App Alerts', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                subtitle: const Text('Notify store manager immediately when orders are placed', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                value: _adminOrderAlerts,
+                activeThumbColor: AppColors.primary,
+                onChanged: (val) => setState(() => _adminOrderAlerts = val),
+              ),
+              const Divider(),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Low-Stock & Out-of-Stock Alerts', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                subtitle: const Text('Flag inventory items nearing replenishment threshold', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                value: _lowStockAlerts,
+                activeThumbColor: AppColors.primary,
+                onChanged: (val) => setState(() => _lowStockAlerts = val),
+              ),
+              const Divider(),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Customer Status Updates', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                subtitle: const Text('Notify customer when order is marked Ready for Pickup', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                value: _customerStatusNotifications,
+                activeThumbColor: AppColors.primary,
+                onChanged: (val) => setState(() => _customerStatusNotifications = val),
+              ),
+            ]),
+            const SizedBox(height: 12),
+
+            // 5. Billing, Tax & Counter Payments
+            _buildSectionCard('5. Billing, Taxes & Counter Payment', [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Enable Manual WhatsApp QR / UPI Collection', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                subtitle: const Text('Permit manual UPI QR code verification via store WhatsApp', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                value: _isWhatsappQrEnabled,
+                activeThumbColor: AppColors.primary,
+                onChanged: (val) => setState(() => _isWhatsappQrEnabled = val),
+              ),
+              const Divider(),
+              _buildTextField(_storeUpiIdCtrl, 'Store Counter UPI ID (e.g. kanhaiyastore@upi)'),
+              _buildTextField(_paymentInstructionsCtrl, 'Payment Instructions for Customer'),
+              _buildTextField(_invoicePrefixCtrl, 'Invoice Number Prefix (e.g. INV)'),
+              _buildTextField(_gstinCtrl, 'GSTIN (Goods and Services Tax ID, if registered)'),
+            ]),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
     );
   }
 
@@ -318,33 +390,57 @@ class _AdminStoreSettingsScreenState extends ConsumerState<AdminStoreSettingsScr
       padding: const EdgeInsets.all(AppDimensions.md),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-          const Divider(height: 18),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primary),
+          ),
+          const SizedBox(height: 10),
           ...children,
         ],
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String label, {int maxLines = 1, TextInputType? keyboardType, String? hint}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, {
+    int maxLines = 1,
+    bool required = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: TextField(
-        controller: ctrl,
+      child: TextFormField(
+        controller: controller,
         maxLines: maxLines,
-        keyboardType: keyboardType,
+        validator: required
+            ? (val) => (val == null || val.trim().isEmpty) ? '$label is required' : null
+            : null,
         decoration: InputDecoration(
           labelText: label,
-          hintText: hint,
-          border: const OutlineInputBorder(),
+          labelStyle: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           isDense: true,
+          filled: true,
+          fillColor: const Color(0xFFFBFBFB),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: AppColors.border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: AppColors.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(6),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
         ),
+        style: const TextStyle(fontSize: 13),
       ),
     );
   }

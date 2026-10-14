@@ -166,6 +166,16 @@ class ApiClient {
     });
   }
 
+  async getProducts(params?: { search?: string; categoryId?: string; page?: number; limit?: number }): Promise<ApiResponse<{ items: any[]; total: number; page: number; limit: number }>> {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.categoryId) searchParams.set('categoryId', params.categoryId);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    const qs = searchParams.toString();
+    return this.request(`/products${qs ? `?${qs}` : ''}`);
+  }
+
   async createProduct(productData: any): Promise<ApiResponse<any>> {
     return this.request('/products', {
       method: 'POST',
@@ -198,6 +208,83 @@ class ApiClient {
 
   async getStoreSettings(): Promise<ApiResponse<any>> {
     return this.request('/settings');
+  }
+
+  async createAdminOrder(orderData: any): Promise<ApiResponse<any>> {
+    return this.request('/orders/admin', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  }
+
+  async updateAdminOrder(idOrNumber: string, updateData: any): Promise<ApiResponse<any>> {
+    return this.request(`/orders/admin/${idOrNumber}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updateData),
+    });
+  }
+
+  async deleteOrder(idOrNumber: string): Promise<ApiResponse<any>> {
+    return this.request(`/orders/admin/${idOrNumber}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async toggleProductLive(id: string, isPublished: boolean): Promise<ApiResponse<any>> {
+    return this.request(`/products/${id}/publish`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isPublished }),
+    });
+  }
+
+  async getAdminUsers(params?: { search?: string; role?: string; status?: string; page?: number; limit?: number }): Promise<ApiResponse<{ users: any[]; total: number; page: number; totalPages: number }>> {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.role) searchParams.set('role', params.role);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    const qs = searchParams.toString();
+    return this.request(`/admin/users${qs ? `?${qs}` : ''}`);
+  }
+
+  async createAdminUser(payload: any): Promise<ApiResponse<any>> {
+    return this.request('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateAdminUser(id: string, payload: any): Promise<ApiResponse<any>> {
+    return this.request(`/admin/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteAdminUser(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/admin/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getNotifications(phone?: string, admin?: boolean): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams();
+    if (phone) params.set('phone', phone);
+    if (admin) params.set('admin', 'true');
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return this.request(`/notifications${qs}`);
+  }
+
+  async markNotificationRead(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/notifications/${id}/read`, { method: 'PATCH' });
+  }
+
+  async markAllNotificationsRead(phone?: string): Promise<ApiResponse<any>> {
+    return this.request('/notifications/read-all', {
+      method: 'PATCH',
+      body: JSON.stringify({ phone }),
+    });
   }
 }
 

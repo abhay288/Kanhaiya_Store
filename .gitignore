@@ -57,6 +57,9 @@ android/.gradle/
 android/app/build/
 android/local.properties
 android/key.properties
+**/key.properties
+*.jks
+*.keystore
 android/captures/
 ios/.symlinks/
 ios/Flutter/Flutter.framework

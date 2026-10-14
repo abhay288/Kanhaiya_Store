@@ -72,7 +72,47 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
 
     // 2. Attempt verifying as direct Firebase ID token
     const decodedFirebase = await verifyFirebaseIdToken(token);
-    const user = await User.findOne({ firebaseUid: decodedFirebase.uid });
+    const normalizedEmail = (decodedFirebase.email || '').toLowerCase().trim();
+    let user = await User.findOne({ firebaseUid: decodedFirebase.uid });
+    if (!user && normalizedEmail) {
+      user = await User.findOne({ email: normalizedEmail });
+    }
+
+    const allowlist = env.ADMIN_ALLOWED_EMAILS.split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    const isAdminEmail = normalizedEmail ? allowlist.includes(normalizedEmail) : false;
+
+    if (!user) {
+      try {
+        user = await User.create({
+          firebaseUid: decodedFirebase.uid,
+          email: normalizedEmail || `${decodedFirebase.uid}@firebase.local`,
+          displayName: decodedFirebase.displayName || (isAdminEmail ? 'Store Owner' : 'Valued Customer'),
+          photoURL: decodedFirebase.photoURL,
+          role: isAdminEmail ? 'ADMIN' : 'CUSTOMER',
+          isActive: true,
+          lastLoginAt: new Date(),
+        });
+      } catch {
+        // In case of race condition or mock mode, retry find
+        user = await User.findOne({ firebaseUid: decodedFirebase.uid });
+      }
+    } else {
+      let changed = false;
+      if (isAdminEmail && user.role !== 'ADMIN') {
+        user.role = 'ADMIN';
+        changed = true;
+      }
+      if (!user.firebaseUid) {
+        user.firebaseUid = decodedFirebase.uid;
+        changed = true;
+      }
+      if (changed) {
+        await user.save();
+      }
+    }
+
     if (!user || !user.isActive) {
       return next(new UnauthorizedError('User account not found or deactivated.'));
     }
@@ -135,7 +175,11 @@ export async function optionalAuthenticate(req: Request, _res: Response, next: N
     }
 
     const decodedFirebase = await verifyFirebaseIdToken(token);
-    const user = await User.findOne({ firebaseUid: decodedFirebase.uid });
+    const normalizedEmail = (decodedFirebase.email || '').toLowerCase().trim();
+    let user = await User.findOne({ firebaseUid: decodedFirebase.uid });
+    if (!user && normalizedEmail) {
+      user = await User.findOne({ email: normalizedEmail });
+    }
     if (user && user.isActive) {
       req.user = {
         id: user._id.toString(),

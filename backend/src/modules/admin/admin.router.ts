@@ -22,6 +22,7 @@ import {
   getStoreSettingsAdmin,
   updateStoreSettingsAdmin,
 } from './analytics.controller';
+import { AdminUsersController } from './users.controller';
 
 const router = Router();
 
@@ -50,7 +51,14 @@ router.get('/reports/orders', authenticate, authorizeAdmin, getOrderReports);
 router.get('/reports/payments', authenticate, authorizeAdmin, getOrderReports);
 router.get('/reports/export/:reportType', authenticate, authorizeAdmin, exportReport);
 
-// Phase 8: Customer Management
+// Direct MongoDB User Management CRUD
+router.get('/users', authenticate, authorizeAdmin, AdminUsersController.listUsers);
+router.post('/users', authenticate, authorizeAdmin, AdminUsersController.createUser);
+router.get('/users/:id', authenticate, authorizeAdmin, AdminUsersController.getUser);
+router.patch('/users/:id', authenticate, authorizeAdmin, AdminUsersController.updateUser);
+router.delete('/users/:id', authenticate, authorizeAdmin, AdminUsersController.deleteUser);
+
+// Phase 8: Customer Management (Legacy Analytics)
 router.get('/customers', authenticate, authorizeAdmin, getCustomers);
 router.get('/customers/:id', authenticate, authorizeAdmin, getCustomerDetails);
 

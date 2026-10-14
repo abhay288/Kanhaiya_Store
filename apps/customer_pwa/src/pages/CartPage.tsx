@@ -257,7 +257,7 @@ export const CartPage: React.FC<CartPageProps> = ({
             marginBottom: '8px',
           }}
         >
-          📍 In-Store Pickup Only: We do not deliver products anywhere. Collect your items directly at the store counter.
+          📍 In-Store Pickup Counter: Collect items at Kanhaiya General Store (Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat).
         </div>
 
         <div

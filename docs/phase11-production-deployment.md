@@ -95,6 +95,7 @@ Configure the following variables securely in the **Environment** tab of the Ren
 ### Health Check & Redaction Protections
 
 The backend exposes two health endpoints:
+
 - `GET /api/v1/health`
 - `GET /health` (root alias for cloud load balancers)
 
@@ -120,6 +121,7 @@ Both endpoints return:
 ### Graceful Shutdown & Connection Pooling
 
 The backend handles termination signals (`SIGTERM` and `SIGINT`):
+
 1. Stops accepting new inbound HTTP requests.
 2. Waits up to 10 seconds for in-flight requests to complete.
 3. Disconnects cleanly from MongoDB via `mongoose.disconnect()`.
@@ -272,15 +274,18 @@ The following authoritative operational parameters are hardcoded and verified in
 
 - **Store Name:** Kanhaiya General Store
 - **Store Tagline:** Fresh Essentials & Daily Groceries at Wholesale Rates
-- **Physical Address:** Shop #14, Main Mandi Road, Near Gandhi Chowk
-- **Store Contact Phone:** `+91 98765 43210`
-- **WhatsApp Support & Orders:** `+91 98765 43210`
+- **Physical Address:** Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh
+- **Store Contact Phone:** `+91 9936269347`
+- **WhatsApp Support & Orders:** `+91 9936269347`
 - **Store UPI ID:** `kanhaiyastore@upi`
-- **Delivery Policy Notice:** *"We are not deliver the products anywhere. In fresh we only sell milk products and breads at the store. In-store pickup available."*
+- **FSSAI Number:** `12722046000057`
+- **GSTIN / UIN:** `09ANBPL4077E1Z1`
+- **PAN / IT No:** `ANBPL4077E`
+- **State Name & Code:** Uttar Pradesh (Code: 09)
 - **Allowed Payment Methods:**
   1. **Cash on Delivery (COD):** Handled as pay-at-counter in-store pickup or local handover.
   2. **Manual WhatsApp QR:** Customer transfers via UPI and sends screenshot; store admin confirms via `/verify-payment`.
-- **Invoices:** Invoices generate sequential invoice numbers (`INV-YYYYMM-XXXX`) and show GSTIN only when configured in store settings.
+- **Invoices:** Invoices generate sequential invoice numbers (`INV-YYYYMM-XXXX`) displaying store address, FSSAI No., GSTIN, PAN, and State code.
 
 ---
 
@@ -381,6 +386,7 @@ node backend/scripts/smoke-test.mjs https://api.kanhaiyastore.com
 ### Manual Verification Checklist
 
 #### Backend API Verification
+
 - [ ] `GET /api/v1/health` returns HTTP 200 with `database: "connected"`.
 - [ ] `GET /health` root alias returns HTTP 200.
 - [ ] `GET /api/v1/products` returns published items without requiring authentication.
@@ -391,6 +397,7 @@ node backend/scripts/smoke-test.mjs https://api.kanhaiyastore.com
 - [ ] Server logs do not expose `MONGODB_URI`, passwords, or tokens.
 
 #### Customer Web App (PWA) Verification
+
 - [ ] Home page loads over HTTPS with zero console errors.
 - [ ] Product categories and listings display correct prices and stock status.
 - [ ] Cart updates correctly and persists across page reloads.
@@ -399,6 +406,7 @@ node backend/scripts/smoke-test.mjs https://api.kanhaiyastore.com
 - [ ] Offline indicator displays appropriately when network connection is severed.
 
 #### Android Mobile Application Verification
+
 - [ ] Release APK / AAB installs and launches cleanly on Android 12, 13, and 14.
 - [ ] Splash screen shows "Kanhaiya General Store" branding.
 - [ ] Catalog browsing, search, and category filtering operate smoothly.
@@ -427,18 +435,21 @@ node backend/scripts/smoke-test.mjs https://api.kanhaiyastore.com
 ### Incident Response Playbooks
 
 #### Scenario 1: Database Connectivity Loss
+
 1. Check MongoDB Atlas cluster status at `status.mongodb.com`.
 2. Verify Render IP access in Atlas **Network Access**.
 3. Check Render logs for `MongooseServerSelectionError`.
 4. If cluster is unreachable, restart Render service to re-initialize connection pool.
 
 #### Scenario 2: Secret Compromise (e.g. JWT_SECRET or Cloudinary Key)
+
 1. Immediately generate a new secret in the provider dashboard.
 2. Update the environment variable in the Render Dashboard.
 3. Trigger a manual deploy in Render (`Deploy latest commit`).
 4. Invalidate existing user sessions (customers will seamlessly re-authenticate on next request).
 
 #### Scenario 3: Stock Inconsistency / Double Deduction
+
 1. Inspect the `stock_movements` collection filtered by `productId` to trace all decrements and restorations.
 2. Execute an audit adjustment through the Admin Inventory screen with reason `AUDIT_CORRECTION`.
 3. Verify that the order's `isInventoryRestored` flag is correctly set.
@@ -450,6 +461,7 @@ node backend/scripts/smoke-test.mjs https://api.kanhaiyastore.com
 ### Rollback Runbooks
 
 #### Backend Rollback (Render)
+
 1. Open the Render Dashboard $\rightarrow$ Select `kanhaiya-store-api`.
 2. Navigate to **Events** or **Deploy History**.
 3. Locate the previous stable deployment commit.
@@ -457,6 +469,7 @@ node backend/scripts/smoke-test.mjs https://api.kanhaiyastore.com
 5. Service will revert within 60–90 seconds with zero downtime.
 
 #### Frontend Rollback (Netlify / Vercel)
+
 1. Open the Netlify / Vercel Dashboard $\rightarrow$ Select project.
 2. Navigate to **Deploys**.
 3. Select the previous production deploy.
@@ -464,6 +477,7 @@ node backend/scripts/smoke-test.mjs https://api.kanhaiyastore.com
 5. CDN caches will update globally within seconds.
 
 #### Database Rollback (MongoDB Atlas)
+
 1. Open MongoDB Atlas $\rightarrow$ **Clusters** $\rightarrow$ **Backup**.
 2. Select the restore point prior to the incident.
 3. Restore into a new temporary cluster to verify data integrity before switching connection strings.

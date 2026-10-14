@@ -44,27 +44,37 @@ export class InvoiceService {
         const lightBg = '#F8F6F0';
 
         // 1. Header Banner
-        doc.rect(40, 40, 515, 65).fill(primaryColor);
+        doc.rect(40, 40, 515, 78).fill(primaryColor);
         doc
           .fillColor('#FFFFFF')
-          .fontSize(18)
+          .fontSize(16)
           .font('Helvetica-Bold')
-          .text(settings.storeName || 'KANHAIYA GENERAL STORE', 55, 55);
+          .text(settings.storeName || 'KANHAIYA GENERAL STORE', 55, 52);
 
         doc
-          .fontSize(8.5)
+          .fontSize(8)
           .font('Helvetica')
           .fillColor('#E2E8F0')
           .text(
-            `${settings.storeAddress} | Phone: ${settings.storePhone} | Email: ${settings.supportEmail || 'kanhaiyaastore@gmail.com'}`,
+            `${settings.storeAddress || 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh'}`,
             55,
-            78
+            71
+          )
+          .text(
+            `FSSAI No. ${settings.fssai || '12722046000057'}  |  GSTIN: ${settings.gstin || '09ANBPL4077E1Z1'}  |  PAN: ${settings.pan || 'ANBPL4077E'}  |  State: ${settings.stateName || 'Uttar Pradesh'}, Code: ${settings.stateCode || '09'}`,
+            55,
+            83
+          )
+          .text(
+            `Phone/WhatsApp: +91 ${settings.storeWhatsapp || settings.storePhone || '9936269347'}  |  Email: ${settings.supportEmail || 'kanhaiyaastore@gmail.com'}`,
+            55,
+            95
           );
 
         doc.moveDown(2);
 
         // 2. Invoice Meta Header
-        const metaTop = 120;
+        const metaTop = 132;
         doc
           .fillColor(primaryColor)
           .fontSize(14)

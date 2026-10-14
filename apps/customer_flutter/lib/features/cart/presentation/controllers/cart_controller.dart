@@ -154,7 +154,7 @@ final cartSavingsProvider = Provider<double>((ref) {
 });
 
 final cartDeliveryFeeProvider = Provider<double>((ref) {
-  // Store policy: In-store pickup only. We do not deliver products anywhere.
+  // Store policy: In-store pickup counter orders (Free handling)
   return 0.0;
 });
 

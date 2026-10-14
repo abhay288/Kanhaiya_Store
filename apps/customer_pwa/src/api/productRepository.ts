@@ -346,18 +346,25 @@ export class ProductRepository {
     return null;
   }
 
-  async getOrders(): Promise<Order[]> {
+  async getOrders(token?: string): Promise<Order[]> {
     if (this.useMockOnly) {
       await new Promise((r) => setTimeout(r, 150));
       return MOCK_ORDERS;
     }
+    if (!token) {
+      return [];
+    }
     try {
-      const res = await fetch(`${API_BASE_URL}/orders`);
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      };
+      const res = await fetch(`${API_BASE_URL}/orders/my`, { headers });
       if (!res.ok) throw new Error('Failed to fetch orders');
       const json = await res.json();
-      return json.data;
+      return json.data || [];
     } catch (_err) {
-      return MOCK_ORDERS;
+      return [];
     }
   }
 
@@ -377,7 +384,7 @@ export class ProductRepository {
       phone: '9936269347',
       whatsappNumber: '9936269347',
       upiId: 'kanhaiyastore@upi',
-      storeAddress: 'Fatehpur Roshnai, Kanpur D. UP',
+      storeAddress: 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
       pickupInstructions: 'Orders are packed and kept ready at the store counter. Please share your Order Number when collecting.',
       isDeliveryEnabled: true,
       serviceablePincodes: ['209304', '209305', '208001', '208002'],
@@ -579,7 +586,9 @@ export class ProductRepository {
 <body>
   <div class="header">
     <h1>KANHAIYA GENERAL STORE</h1>
-    <p>Fatehpur Roshnai, Kanpur D. UP | Phone/WhatsApp: 9936269347 | Email: kanhaiyaastore@gmail.com</p>
+    <p>Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh</p>
+    <p style="font-size: 11px; color: #174D3A; margin-top: 2px;">FSSAI No. 12722046000057 | GSTIN: 09ANBPL4077E1Z1 | PAN: ANBPL4077E | State: Uttar Pradesh, Code: 09</p>
+    <p style="font-size: 11px; color: #64748b; margin-top: 2px;">Phone/WhatsApp: +91 9936269347 | Email: kanhaiyaastore@gmail.com</p>
   </div>
   <div class="meta">
     <div>
@@ -588,7 +597,7 @@ export class ProductRepository {
       <div style="margin-top: 4px;"><strong>Status:</strong> <span class="badge">RETAIL INVOICE</span></div>
     </div>
     <div style="text-align: right;">
-      <div><strong>Store Location:</strong> Fatehpur Roshnai, Kanpur D. UP</div>
+      <div><strong>Store Location:</strong> Fatehpur Roshnai, Kanpur Dehat, UP</div>
       <div><strong>Helpline:</strong> +91 9936269347</div>
       <div><strong>Support:</strong> kanhaiyaastore@gmail.com</div>
     </div>

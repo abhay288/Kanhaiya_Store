@@ -8,6 +8,7 @@ import '../../../../core/widgets/product_card.dart';
 import '../../../cart/presentation/controllers/cart_controller.dart';
 import '../../../catalog/presentation/controllers/catalog_providers.dart';
 import '../../../catalog/domain/models/product_model.dart';
+import '../../../notifications/presentation/controllers/notification_controller.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,33 +18,56 @@ class HomeScreen extends ConsumerWidget {
     final categoriesAsync = ref.watch(categoriesProvider);
     final collectionsAsync = ref.watch(collectionsProvider);
     final cartItemCount = ref.watch(cartItemCountProvider);
+    final unreadNotificationCount = ref.watch(unreadNotificationCountProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        toolbarHeight: 64,
+        title: Row(
           children: [
-            Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.asset(
-                    'assets/images/kgs_logo.png',
-                    width: 26,
-                    height: 26,
-                    fit: BoxFit.contain,
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
+                ],
+              ),
+              padding: const EdgeInsets.all(2),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.asset(
+                  'assets/images/kgs_logo.png',
+                  width: 42,
+                  height: 42,
+                  fit: BoxFit.contain,
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Kanhaiya General Store',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-              ],
+              ),
             ),
-            const Text(
-              'In-Store Shopping Only • We do not deliver products anywhere',
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Kanhaiya General Store',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    'Fatehpur Roshnai, Sarvankhera, Kanpur Dehat',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -80,9 +104,46 @@ class HomeScreen extends ConsumerWidget {
                 ),
             ],
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.push('/notifications'),
+          // Working Notification Bell icon with Live Unread Badge
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                tooltip: 'Notifications',
+                onPressed: () => context.push('/notifications'),
+              ),
+              if (unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      unreadNotificationCount > 9 ? '9+' : '$unreadNotificationCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

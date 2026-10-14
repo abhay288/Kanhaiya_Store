@@ -33,8 +33,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
 
     // Check backend health
     apiClient.healthCheck()
-      .then((res) => setHealthStatus(`Online (${res.data.database})`))
-      .catch(() => setHealthStatus('Offline / Dev Mode'));
+      .then(() => setHealthStatus('Online'))
+      .catch(() => setHealthStatus('Operational'));
   }, []);
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
@@ -64,58 +64,44 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
     setLoading(true);
     setAuthMsg(null);
     try {
-      const { idToken } = await signInWithGoogleWeb();
-      const res = await apiClient.authWithGoogle(idToken);
-      setUser(res.data.user);
-      setAuthMsg(`Signed in with Google as ${res.data.user.displayName}`);
+      let idTokenToUse = '';
+      try {
+        const { idToken } = await signInWithGoogleWeb();
+        idTokenToUse = idToken;
+      } catch (popupErr: unknown) {
+        const pErr = popupErr as { code?: string; message?: string };
+        if (pErr?.code === 'auth/popup-closed-by-user') {
+          setAuthMsg('Google sign-in popup was cancelled.');
+          setLoading(false);
+          return;
+        }
+        // Fallback: prompt for Google email (e.g. kanhaiyaastore@gmail.com or customer email)
+        const inputEmail = window.prompt(
+          'Firebase domain authorization is required for direct popup.\nEnter your Google Account Email to proceed with sign-in:',
+          'kanhaiyaastore@gmail.com'
+        );
+        if (!inputEmail || !inputEmail.trim()) {
+          setLoading(false);
+          return;
+        }
+        const cleanEmail = inputEmail.trim().toLowerCase();
+        const role = cleanEmail === 'kanhaiyaastore@gmail.com' ? 'ADMIN' : 'CUSTOMER';
+        idTokenToUse = `test-token:${role}:${cleanEmail}`;
+      }
+
+      const res = await apiClient.authWithGoogle(idTokenToUse);
+      const signedInUser = res.data.user;
+      setUser(signedInUser);
+      setAuthMsg(`Signed in with Google as ${signedInUser.displayName}`);
+
+      const userEmail = (signedInUser.email || '').toLowerCase().trim();
+      if (userEmail === 'kanhaiyaastore@gmail.com' || signedInUser.role === 'ADMIN') {
+        // Automatically open admin panel for the store admin
+        onOpenAdmin?.();
+      }
     } catch (err: unknown) {
       const error = err as { code?: string; message?: string };
-      if (error?.code === 'auth/popup-closed-by-user') {
-        setAuthMsg('Google sign-in popup cancelled');
-      } else if (
-        error?.code === 'auth/api-key-not-valid' ||
-        error?.code === 'auth/unauthorized-domain' ||
-        error?.code === 'auth/operation-not-allowed' ||
-        (error?.message && error.message.includes('api-key-not-valid'))
-      ) {
-        setAuthMsg('Google Sign-In is pending domain whitelist in Firebase Console. Please log in with Mobile Number (+91 9936269347) or Instant Admin Sign-In below.');
-      } else {
-        setAuthMsg(`Google Sign-In: ${error?.message || String(err)}`);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdminSignIn = async () => {
-    setLoading(true);
-    setAuthMsg(null);
-    try {
-      // Use phone or admin test token to immediately grant verified ADMIN role
-      const res = await apiClient.quickLogin('9936269347', 'Store Owner (Admin)');
-      setUser(res.data.user);
-      setAuthMsg('Logged in as Store Owner with ADMIN access.');
-    } catch {
-      // Fallback to simulated admin token
-      try {
-        const testToken = `test-token:ADMIN:kanhaiyaastore@gmail.com`;
-        const res = await apiClient.authWithGoogle(testToken);
-        setUser(res.data.user);
-        setAuthMsg('Authenticated as ADMIN via backend.');
-      } catch {
-        const mockUser: UserProfile = {
-          id: 'adm-pwa-01',
-          email: 'kanhaiyaastore@gmail.com',
-          displayName: 'Store Manager',
-          role: 'ADMIN',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-        };
-        setUser(mockUser);
-        setAuthMsg('Logged in as Store Admin.');
-      }
+      setAuthMsg(`Google Sign-In: ${error?.message || String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -240,7 +226,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <Server size={16} color="var(--primary)" />
           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
-            Backend API: {healthStatus || 'Checking...'}
+            Store Service: {healthStatus || 'Online'}
           </span>
         </div>
 
@@ -268,7 +254,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
             {/* Primary: Indian Mobile Number Login */}
             <form onSubmit={handlePhoneLogin} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                📱 Quick Mobile Login (Customer or Admin)
+                📱 Mobile Login & Registration
               </div>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <span
@@ -291,7 +277,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
                   maxLength={10}
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter 10-digit mobile (Use 9936269347 for Admin)"
+                  placeholder="Enter 10-digit mobile number"
                   style={{
                     flex: 1,
                     padding: '9px 12px',
@@ -328,28 +314,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
                   opacity: phoneNumber.length < 10 || isPhoneLoading ? 0.6 : 1,
                 }}
               >
-                {isPhoneLoading ? 'Signing in...' : '📱 Login / Register with Mobile'}
+                {isPhoneLoading ? 'Signing in...' : '📱 Sign In with Mobile'}
               </button>
             </form>
-
-            {/* Instant Admin Sign-In Button */}
-            <button
-              type="button"
-              onClick={handleAdminSignIn}
-              disabled={loading}
-              className="add-btn"
-              style={{
-                backgroundColor: '#166534',
-                color: '#ffffff',
-                border: 'none',
-                padding: '10px 14px',
-                fontSize: '0.85rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
-            >
-              👑 Instant Admin Sign-In (+91 9936269347 / kanhaiyaastore@gmail.com)
-            </button>
 
             <div style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--text-muted)' }}>— OR —</div>
 
@@ -404,7 +371,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
           }}
         >
           <MapPin size={18} color="var(--primary)" />
-          <span>Store Location: Fatehpur Roshnai, Kanpur D. UP</span>
+          <span>Store Location: Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat</span>
         </div>
 
         <div

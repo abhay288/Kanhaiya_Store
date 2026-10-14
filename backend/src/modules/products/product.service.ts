@@ -282,6 +282,9 @@ export class ProductService {
 
     const product = await Product.create({
       ...data,
+      isNewArrival: data.isNewArrival ?? true,
+      isAvailable: data.isAvailable ?? (data.stockQuantity !== undefined ? Number(data.stockQuantity) > 0 : true),
+      isPublished: data.isPublished ?? true,
       slug: finalSlug,
       sku: data.sku && data.sku.trim() ? data.sku.trim() : undefined,
       images,

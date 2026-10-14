@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/feedback_views.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/cart_controller.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
@@ -251,7 +252,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       children: [
                         const Text('Order Fulfillment', style: TextStyle(color: AppColors.textSecondary)),
                         const Text(
-                          'In-Store Pickup Only',
+                          'In-Store Pickup',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary,
@@ -261,7 +262,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     ),
                     const SizedBox(height: AppDimensions.xs),
                     const Text(
-                      'Notice: We do not deliver products anywhere.',
+                      'Collect at Store: Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat',
                       style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                     ),
                     const Divider(height: 24),
@@ -312,7 +313,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             border: Border(top: BorderSide(color: AppColors.border)),
           ),
           child: ElevatedButton(
-            onPressed: () => context.push('/checkout'),
+            onPressed: () {
+              final authState = ref.read(authProvider);
+              if (!authState.isAuthenticated) {
+                context.push('/signin?redirect=/cart');
+              } else {
+                context.push('/checkout');
+              }
+            },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

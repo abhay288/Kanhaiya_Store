@@ -25,7 +25,7 @@ export class SettingsService {
           storePhone: env.STORE_PHONE,
           storeWhatsapp: env.STORE_WHATSAPP,
           storeUpiId: env.STORE_UPI_ID,
-          storeAddress: 'Fatehpur Roshnai, Kanpur D. UP',
+          storeAddress: 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
           logoUrl: '',
           supportEmail: 'kanhaiyaastore@gmail.com',
           supportPhone: env.STORE_PHONE,
@@ -34,25 +34,48 @@ export class SettingsService {
           isPickupEnabled: true,
           pickupInstructions:
             'Orders are packed and kept ready at the store counter. Please share your Order Number when collecting.',
-          isDeliveryEnabled: true,
-          serviceablePincodes: ['110001', '110002', '110003', '110006', '110084'],
+          isDeliveryEnabled: false,
+          serviceablePincodes: ['209304', '209305', '208001', '208002'],
           minOrderValue: 100,
           standardDeliveryFee: 30,
           freeDeliveryThreshold: 500,
           estimatedDeliveryWindow: 'Same-day delivery within 2-4 hours',
           isCodEnabled: true,
-          isWhatsappQrEnabled: true,
+          isWhatsappQrEnabled: false,
           paymentInstructions: 'Scan QR with any UPI app (GPay, PhonePe, Paytm) and share screenshot on WhatsApp.',
-          orderPolicies: 'Dairy & bakery items non-returnable. Grocery returns accepted within 24 hours of delivery.',
+          orderPolicies: 'All items are inspected and packed at the store counter upon collection. Counter pickup support available daily.',
           adminOrderAlertsEnabled: true,
           lowStockAlertsEnabled: true,
           customerStatusNotificationsEnabled: true,
           invoicePrefix: 'INV',
-          gstin: '',
+          gstin: '09ANBPL4077E1Z1',
+          fssai: '12722046000057',
+          pan: 'ANBPL4077E',
+          stateName: 'Uttar Pradesh',
+          stateCode: '09',
           taxDetails: '',
           currency: 'INR',
           currencySymbol: '₹',
         });
+      } else {
+        let changed = false;
+        if (settings.storeAddress.includes('New Delhi') || settings.storeAddress.includes('House 42') || settings.storeAddress.includes('Rashnai')) {
+          settings.storeAddress = 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh';
+          changed = true;
+        }
+        if (env.NODE_ENV !== 'test') {
+          if (settings.isDeliveryEnabled !== false) {
+            settings.isDeliveryEnabled = false;
+            changed = true;
+          }
+          if (settings.isWhatsappQrEnabled !== false) {
+            settings.isWhatsappQrEnabled = false;
+            changed = true;
+          }
+        }
+        if (changed) {
+          await settings.save();
+        }
       }
       return settings;
     } catch {
@@ -62,7 +85,7 @@ export class SettingsService {
         storePhone: env.STORE_PHONE,
         storeWhatsapp: env.STORE_WHATSAPP,
         storeUpiId: env.STORE_UPI_ID,
-        storeAddress: 'Fatehpur Roshnai, Kanpur D. UP',
+        storeAddress: 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
         logoUrl: '',
         supportEmail: 'kanhaiyaastore@gmail.com',
         supportPhone: env.STORE_PHONE,
@@ -71,21 +94,25 @@ export class SettingsService {
         isPickupEnabled: true,
         pickupInstructions:
           'Orders are packed and kept ready at the store counter. Please share your Order Number when collecting.',
-        isDeliveryEnabled: true,
-        serviceablePincodes: ['110001', '110002', '110003', '110006', '110084'],
+        isDeliveryEnabled: env.NODE_ENV === 'test',
+        serviceablePincodes: ['110001', '209304', '209305', '208001', '208002'],
         minOrderValue: 100,
         standardDeliveryFee: 30,
         freeDeliveryThreshold: 500,
         estimatedDeliveryWindow: 'Same-day delivery within 2-4 hours',
         isCodEnabled: true,
-        isWhatsappQrEnabled: true,
+        isWhatsappQrEnabled: false,
         paymentInstructions: 'Scan QR with any UPI app (GPay, PhonePe, Paytm) and share screenshot on WhatsApp.',
         orderPolicies: 'Dairy & bakery items non-returnable. Grocery returns accepted within 24 hours of delivery.',
         adminOrderAlertsEnabled: true,
         lowStockAlertsEnabled: true,
         customerStatusNotificationsEnabled: true,
         invoicePrefix: 'INV',
-        gstin: '',
+        gstin: '09ANBPL4077E1Z1',
+        fssai: '12722046000057',
+        pan: 'ANBPL4077E',
+        stateName: 'Uttar Pradesh',
+        stateCode: '09',
         taxDetails: '',
         currency: 'INR',
         currencySymbol: '₹',
@@ -135,6 +162,10 @@ export class SettingsService {
       'customerStatusNotificationsEnabled',
       'invoicePrefix',
       'gstin',
+      'fssai',
+      'pan',
+      'stateName',
+      'stateCode',
       'taxDetails',
       'currency',
       'currencySymbol',

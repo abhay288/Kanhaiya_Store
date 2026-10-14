@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { OrderService } from './order.service';
 import { sendSuccess } from '../../utils/apiResponse';
+import { UnauthorizedError } from '../../utils/errors';
 
 export class OrderController {
   /**
@@ -30,6 +31,13 @@ export class OrderController {
    */
   static async getOrder(req: Request, res: Response, next: NextFunction) {
     try {
+      if (req.params.idOrNumber === 'my') {
+        if (!req.user) {
+          throw new UnauthorizedError('Authentication required to view order history');
+        }
+        return OrderController.getMyOrders(req, res, next);
+      }
+
       const guestToken =
         (req.headers['x-guest-token'] as string) || (req.query.guestToken as string);
       const phone = req.query.phone as string;
@@ -66,7 +74,7 @@ export class OrderController {
         page: req.query.page ? Number(req.query.page) : undefined,
         limit: req.query.limit ? Number(req.query.limit) : undefined,
         search: req.query.search as string,
-        orderStatus: req.query.orderStatus as string,
+        orderStatus: (req.query.orderStatus || req.query.status) as string,
         paymentStatus: req.query.paymentStatus as string,
         paymentMethod: req.query.paymentMethod as string,
         fulfillmentMethod: req.query.fulfillmentMethod as string,
@@ -204,6 +212,49 @@ export class OrderController {
       res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
       res.setHeader('Content-Length', buffer.length);
       return res.send(buffer);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Admin: Manually create an order
+   */
+  static async createAdminOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const order = await OrderService.createAdminOrder(req.body, req.user!);
+      return sendSuccess(res, order, 'Admin manual order created successfully', 201);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Admin: Update order details (Customer info, notes, order status, payment status)
+   */
+  static async updateAdminOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const updated = await OrderService.updateOrderAdmin(
+        req.params.idOrNumber,
+        req.body,
+        req.user!
+      );
+      return sendSuccess(res, updated, 'Order updated successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Admin: Permanently delete order from MongoDB and restore inventory
+   */
+  static async deleteAdminOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await OrderService.deleteOrderAdmin(
+        req.params.idOrNumber,
+        req.user!
+      );
+      return sendSuccess(res, result, result.message);
     } catch (err) {
       next(err);
     }

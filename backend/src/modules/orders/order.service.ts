@@ -58,6 +58,45 @@ export interface AdminOrderQueryParams {
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface AdminCreateOrderItemInput {
+  productId: string;
+  quantity: number;
+  sellingPrice?: number;
+}
+
+export interface AdminCreateOrderInput {
+  items: AdminCreateOrderItemInput[];
+  fulfillmentMethod?: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  deliveryAddress?: {
+    houseNumber: string;
+    street: string;
+    landmark?: string;
+    city: string;
+    state: string;
+    pincode: string;
+    deliveryInstructions?: string;
+  };
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: PaymentStatus;
+  orderStatus?: OrderStatus;
+  customerNotes?: string;
+}
+
+export interface AdminUpdateOrderInput {
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  customerNotes?: string;
+  orderStatus?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  fulfillmentMethod?: FulfillmentMethod;
+  deliveryAddress?: any;
+  notes?: string;
+}
+
 export class OrderService {
   /**
    * Safely dispatches notifications without blocking if database connection is offline or in mock unit tests
@@ -395,6 +434,65 @@ export class OrderService {
         message: `Your order for ₹${totalAmount} has been placed successfully (${input.fulfillmentMethod}).`,
         type: 'ORDER_PLACED',
       });
+
+      // 14. Immediately inform Store Admin by Notification
+      const adminAlertTitle = `🚨 New Customer Order #${orderNumber}!`;
+      const adminAlertMessage = `New order placed by ${cleanName} (${cleanPhone}) for ₹${totalAmount} (${itemSnapshots.length} items, ${input.fulfillmentMethod}). Payment: ${input.paymentMethod}.`;
+
+      await this.sendNotificationSafely({
+        userId: null,
+        customerPhone: '',
+        orderId: newOrder._id,
+        orderNumber,
+        title: adminAlertTitle,
+        message: adminAlertMessage,
+        type: 'ADMIN_ALERT',
+        appName: 'Store Admin Alert',
+        isAdmin: true,
+        metadata: {
+          isAdminNotification: true,
+          orderId: newOrder._id,
+          orderNumber,
+          totalAmount,
+          customerName: cleanName,
+          customerPhone: cleanPhone,
+          fulfillmentMethod: input.fulfillmentMethod,
+          paymentMethod: input.paymentMethod,
+          itemCount: itemSnapshots.length,
+        },
+      });
+
+      // Optional targeted records for admin user accounts (fire-and-forget, non-blocking)
+      if (mongoose.connection.readyState === 1) {
+        User.find({
+          $or: [{ role: 'ADMIN' }, { email: 'kanhaiyaastore@gmail.com' }],
+        })
+          .select('_id')
+          .lean()
+          .then((adminUsers) => {
+            for (const admin of adminUsers) {
+              this.sendNotificationSafely({
+                userId: admin._id,
+                orderId: newOrder._id,
+                orderNumber,
+                title: adminAlertTitle,
+                message: adminAlertMessage,
+                type: 'ADMIN_ALERT',
+                appName: 'Store Admin Alert',
+                isAdmin: true,
+                metadata: {
+                  isAdminNotification: true,
+                  orderId: newOrder._id,
+                  orderNumber,
+                  totalAmount,
+                  customerName: cleanName,
+                  customerPhone: cleanPhone,
+                },
+              });
+            }
+          })
+          .catch(() => {});
+      }
 
       return newOrder;
     } catch (creationError) {
@@ -875,5 +973,280 @@ export class OrderService {
     const filename = `Invoice-${order.invoiceNumber}.pdf`;
 
     return { buffer, filename };
+  }
+
+  /**
+   * Admin: Manually create an order (POS / In-store walk-in / Phone order) directly in Mongo
+   */
+  static async createAdminOrder(
+    input: AdminCreateOrderInput,
+    actorUser: AuthenticatedUserPayload
+  ): Promise<IOrder> {
+    if (!Array.isArray(input.items) || input.items.length === 0) {
+      throw new BadRequestError('Admin order must contain at least one item.');
+    }
+
+    const cleanName = (input.customerName || 'In-Store Customer').trim();
+    const cleanPhone = (input.customerPhone || '9999999999').trim();
+
+    const fulfillment: FulfillmentMethod =
+      input.fulfillmentMethod === 'DELIVERY' || input.fulfillmentMethod === 'LOCAL_DELIVERY'
+        ? 'DELIVERY'
+        : 'PICKUP';
+
+    const paymentMethod: PaymentMethod = input.paymentMethod || 'COD';
+    const paymentStatus: PaymentStatus = input.paymentStatus || 'PAID';
+    const orderStatus: OrderStatus = input.orderStatus || 'CONFIRMED';
+
+    const settings = await SettingsService.getSettings();
+
+    const itemSnapshots: IOrderItemSnapshot[] = [];
+    let subtotal = 0;
+
+    for (const item of input.items) {
+      if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+        throw new BadRequestError(`Invalid product ID format: ${item.productId}`);
+      }
+      const qty = Math.max(1, Math.floor(Number(item.quantity) || 1));
+      const prod = await Product.findById(item.productId);
+      if (!prod) {
+        throw new BadRequestError(`Product ${item.productId} not found in catalog.`);
+      }
+
+      const unitSellingPrice = item.sellingPrice !== undefined ? Number(item.sellingPrice) : Number(prod.sellingPrice);
+      const unitMrp = Number(prod.mrp || unitSellingPrice);
+      const lineSubtotal = unitSellingPrice * qty;
+
+      itemSnapshots.push({
+        productId: prod._id,
+        name: prod.name,
+        brand: prod.brand || '',
+        imageUrl: prod.images?.[0]?.url || '',
+        unit: prod.unit || 'piece',
+        packSize: prod.packSize || '',
+        sellingPrice: unitSellingPrice,
+        mrp: unitMrp,
+        quantity: qty,
+        lineSubtotal,
+      });
+
+      subtotal += lineSubtotal;
+
+      // Decrement inventory safely
+      const prevStock = prod.stockQuantity;
+      const nextStock = Math.max(0, prevStock - qty);
+      prod.stockQuantity = nextStock;
+      if (nextStock <= 0) {
+        prod.isAvailable = false;
+      }
+      await prod.save();
+
+      try {
+        await StockMovement.create({
+          productId: prod._id,
+          previousQuantity: prevStock,
+          changeQuantity: -qty,
+          finalQuantity: nextStock,
+          adjustmentType: 'ORDER_FULFILLMENT',
+          reason: `Admin created manual order`,
+          referenceNumber: 'ADMIN-POS',
+          performedBy: new mongoose.Types.ObjectId(actorUser.id),
+          performerEmail: actorUser.email || 'admin@kanhaiyastore.com',
+          performerName: actorUser.email || 'Admin',
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    const deliveryFee = fulfillment === 'DELIVERY' ? (subtotal >= settings.freeDeliveryThreshold ? 0 : settings.standardDeliveryFee) : 0;
+    const totalAmount = subtotal + deliveryFee;
+    const orderNumber = await this.generateOrderNumber();
+    const guestTrackingToken = crypto.randomBytes(16).toString('hex');
+
+    const newOrder = await Order.create({
+      orderNumber,
+      customerId: null,
+      customerName: cleanName,
+      customerPhone: cleanPhone,
+      customerEmail: input.customerEmail?.trim() || '',
+      fulfillmentMethod: fulfillment,
+      deliveryAddress: fulfillment === 'DELIVERY' && input.deliveryAddress ? input.deliveryAddress : null,
+      pickupDetails: fulfillment === 'PICKUP' ? {
+        storeName: settings.storeName,
+        storeAddress: settings.storeAddress,
+        storePhone: settings.storePhone,
+        pickupInstructions: settings.pickupInstructions,
+      } : null,
+      items: itemSnapshots,
+      subtotal,
+      deliveryFee,
+      totalAmount,
+      paymentMethod,
+      paymentStatus,
+      orderStatus,
+      customerNotes: input.customerNotes?.trim() || 'Created directly by Store Administrator',
+      guestTrackingToken,
+      isInventoryRestored: false,
+      statusHistory: [
+        {
+          action: 'ADMIN_MANUAL_ORDER_CREATED',
+          newStatus: orderStatus,
+          actorId: new mongoose.Types.ObjectId(actorUser.id),
+          actorName: actorUser.email || 'Store Admin',
+          actorRole: 'ADMIN',
+          timestamp: new Date(),
+          notes: `Created via Admin POS / Manual Order (${fulfillment}, ${paymentMethod}, ${paymentStatus})`,
+        },
+      ],
+    });
+
+    return newOrder;
+  }
+
+  /**
+   * Admin: Update order details (Customer info, notes, order status, payment status)
+   */
+  static async updateOrderAdmin(
+    idOrNumber: string,
+    updateData: AdminUpdateOrderInput,
+    actorUser: AuthenticatedUserPayload
+  ): Promise<IOrder> {
+    const order = await this.getOrderByIdOrNumber(idOrNumber, actorUser);
+
+    const oldStatus = order.orderStatus;
+    const oldPaymentStatus = order.paymentStatus;
+
+    if (updateData.customerName !== undefined && updateData.customerName.trim().length > 0) {
+      order.customerName = updateData.customerName.trim();
+    }
+    if (updateData.customerPhone !== undefined && updateData.customerPhone.trim().length > 0) {
+      order.customerPhone = updateData.customerPhone.trim();
+    }
+    if (updateData.customerEmail !== undefined) {
+      order.customerEmail = updateData.customerEmail.trim();
+    }
+    if (updateData.customerNotes !== undefined) {
+      order.customerNotes = updateData.customerNotes.trim();
+    }
+    if (updateData.deliveryAddress !== undefined) {
+      order.deliveryAddress = updateData.deliveryAddress;
+    }
+    if (updateData.fulfillmentMethod !== undefined) {
+      order.fulfillmentMethod = updateData.fulfillmentMethod;
+    }
+
+    if (updateData.orderStatus && updateData.orderStatus !== oldStatus) {
+      // If moving to CANCELLED and inventory not restored, restore inventory
+      if (updateData.orderStatus === 'CANCELLED' && !order.isInventoryRestored) {
+        for (const item of order.items) {
+          try {
+            const prod = await Product.findById(item.productId);
+            if (prod) {
+              const prev = prod.stockQuantity;
+              const next = prev + item.quantity;
+              prod.stockQuantity = next;
+              prod.isAvailable = true;
+              await prod.save();
+
+              await StockMovement.create({
+                productId: prod._id,
+                previousQuantity: prev,
+                changeQuantity: item.quantity,
+                finalQuantity: next,
+                adjustmentType: 'ORDER_FULFILLMENT',
+                reason: `Order #${order.orderNumber} status changed to CANCELLED`,
+                referenceNumber: order.orderNumber,
+                performedBy: new mongoose.Types.ObjectId(actorUser.id),
+                performerEmail: actorUser.email || 'admin@kanhaiyastore.com',
+                performerName: actorUser.email || 'Store Admin',
+              });
+            }
+          } catch {
+            // ignore
+          }
+        }
+        order.isInventoryRestored = true;
+      }
+
+      order.orderStatus = updateData.orderStatus;
+      order.statusHistory.push({
+        action: 'ORDER_STATUS_UPDATED',
+        previousStatus: oldStatus,
+        newStatus: updateData.orderStatus,
+        actorId: new mongoose.Types.ObjectId(actorUser.id),
+        actorName: actorUser.email || 'Store Admin',
+        actorRole: 'ADMIN',
+        timestamp: new Date(),
+        notes: updateData.notes || `Order status updated to ${updateData.orderStatus} by Admin`,
+      });
+    }
+
+    if (updateData.paymentStatus && updateData.paymentStatus !== oldPaymentStatus) {
+      order.paymentStatus = updateData.paymentStatus;
+      order.statusHistory.push({
+        action: 'PAYMENT_STATUS_UPDATED',
+        previousPaymentStatus: oldPaymentStatus,
+        newPaymentStatus: updateData.paymentStatus,
+        actorId: new mongoose.Types.ObjectId(actorUser.id),
+        actorName: actorUser.email || 'Store Admin',
+        actorRole: 'ADMIN',
+        timestamp: new Date(),
+        notes: `Payment status updated to ${updateData.paymentStatus} by Admin`,
+      });
+    }
+
+    await order.save();
+    return order;
+  }
+
+  /**
+   * Admin: Permanently delete an order directly from MongoDB and restore inventory if applicable
+   */
+  static async deleteOrderAdmin(
+    idOrNumber: string,
+    actorUser: AuthenticatedUserPayload
+  ): Promise<{ deleted: boolean; orderNumber: string; message: string }> {
+    const order = await this.getOrderByIdOrNumber(idOrNumber, actorUser);
+
+    // Restore inventory if items were deducted and never restored
+    if (!order.isInventoryRestored && order.orderStatus !== 'CANCELLED') {
+      for (const item of order.items) {
+        try {
+          const prod = await Product.findById(item.productId);
+          if (prod) {
+            const prev = prod.stockQuantity;
+            const next = prev + item.quantity;
+            prod.stockQuantity = next;
+            prod.isAvailable = true;
+            await prod.save();
+
+            await StockMovement.create({
+              productId: prod._id,
+              previousQuantity: prev,
+              changeQuantity: item.quantity,
+              finalQuantity: next,
+              adjustmentType: 'ORDER_FULFILLMENT',
+              reason: `Order #${order.orderNumber} deleted by Admin: inventory restored`,
+              referenceNumber: order.orderNumber,
+              performedBy: new mongoose.Types.ObjectId(actorUser.id),
+              performerEmail: actorUser.email || 'admin@kanhaiyastore.com',
+              performerName: actorUser.email || 'Store Admin',
+            });
+          }
+        } catch {
+          // ignore
+        }
+      }
+      order.isInventoryRestored = true;
+    }
+
+    await Order.findByIdAndDelete(order._id);
+
+    return {
+      deleted: true,
+      orderNumber: order.orderNumber,
+      message: `Order #${order.orderNumber} has been permanently deleted from MongoDB and stock restored.`,
+    };
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/network/api_error_handler.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../catalog/domain/models/category_model.dart';
 import '../../../catalog/domain/models/product_model.dart';
@@ -95,7 +96,7 @@ class _AdminInventoryDashboardScreenState extends State<AdminInventoryDashboardS
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to load inventory data: $e';
+          _errorMessage = ApiErrorHandler.getMessage(e);
           _isLoading = false;
         });
       }
@@ -146,7 +147,7 @@ class _AdminInventoryDashboardScreenState extends State<AdminInventoryDashboardS
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = ApiErrorHandler.getMessage(e);
           _isLoading = false;
         });
       }
@@ -1105,7 +1106,7 @@ class _AdminInventoryDashboardScreenState extends State<AdminInventoryDashboardS
                         if (mounted) _loadAlerts();
                       } catch (e) {
                         messenger.showSnackBar(
-                          SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
+                          SnackBar(content: Text('Failed: ${ApiErrorHandler.getMessage(e)}'), backgroundColor: AppColors.error),
                         );
                       }
                     },
@@ -1269,7 +1270,7 @@ class _StockAdjustmentBottomSheetState extends State<_StockAdjustmentBottomSheet
       widget.onSuccess();
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = ApiErrorHandler.getMessage(e);
         _isSubmitting = false;
       });
     }

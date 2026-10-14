@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/network/api_error_handler.dart';
 import '../../../catalog/domain/models/category_model.dart';
 import '../../data/admin_catalog_repository.dart';
 
@@ -49,7 +50,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load categories: $e';
+        _errorMessage = ApiErrorHandler.getMessage(e);
         _isLoading = false;
       });
     }
@@ -383,9 +384,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Cannot Delete Category', style: TextStyle(color: AppColors.error)),
-            content: Text(
-              e.toString().replaceAll('Exception: ', '').replaceAll('DioException [bad response]: ', ''),
-            ),
+            content: Text(ApiErrorHandler.getMessage(e)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
