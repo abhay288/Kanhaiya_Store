@@ -29,8 +29,8 @@ import 'scaffold_with_nav_bar.dart';
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
-
+  // Use ref.read instead of ref.watch so periodic auth background syncs (every 15s)
+  // DO NOT tear down and rebuild the GoRouter back to initialLocation '/splash'!
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
@@ -100,7 +100,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/admin',
         redirect: (context, state) {
           // Strict route guard: Unauthorized users or normal customers cannot enter admin routes
-          if (!authState.isAdmin) {
+          final isAdmin = ref.read(authProvider).isAdmin;
+          if (!isAdmin) {
             return '/signin';
           }
           return null;

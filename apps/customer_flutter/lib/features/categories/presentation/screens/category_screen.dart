@@ -27,14 +27,27 @@ class CategoryScreen extends ConsumerWidget {
             return Card(
               child: ListTile(
                 leading: Container(
-                  width: 48,
-                  height: 48,
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
                     color: AppColors.primaryContainer,
                     borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                    border: Border.all(color: AppColors.border),
                   ),
-                  alignment: Alignment.center,
-                  child: Icon(cat.iconData, color: AppColors.primary, size: 24),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.network(
+                    cat.realImageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Center(
+                      child: Icon(cat.iconData, color: AppColors.primary, size: 24),
+                    ),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: Icon(cat.iconData, color: AppColors.primary, size: 22),
+                      );
+                    },
+                  ),
                 ),
                 title: Text(
                   cat.name,

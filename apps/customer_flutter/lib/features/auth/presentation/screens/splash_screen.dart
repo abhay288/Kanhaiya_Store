@@ -317,24 +317,30 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
                 const SizedBox(height: 20),
 
-                // Modern Pill Badge for Store Mode
+                // Ultra-Premium Micro Badge
                 Transform.translate(
                   offset: Offset(0, _badgeSlideAnimation.value),
                   child: FadeTransition(
                     opacity: _badgeFadeAnimation,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(30),
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFFC58B43).withValues(alpha: 0.22),
+                            Colors.white.withValues(alpha: 0.10),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.22),
+                          color: const Color(0xFFC58B43).withValues(alpha: 0.45),
                           width: 1.0,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
@@ -342,18 +348,18 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.storefront_rounded,
-                            size: 15,
-                            color: Color(0xFFE6EDE5),
+                            Icons.bolt_rounded,
+                            size: 14,
+                            color: Color(0xFFE5B76C),
                           ),
-                          SizedBox(width: 7),
+                          SizedBox(width: 6),
                           Text(
-                            'Physical Store & Instant Counter Pickup Desk',
+                            'Instant Counter Pickup Store',
                             style: TextStyle(
-                              fontSize: 11.5,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFFF4F1EA),
-                              letterSpacing: 0.3,
+                              color: Color(0xFFFBF4EA),
+                              letterSpacing: 0.6,
                             ),
                           ),
                         ],

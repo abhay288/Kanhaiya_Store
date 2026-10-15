@@ -223,20 +223,25 @@ class HomeScreen extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  width: 38,
-                                  height: 38,
-                                  decoration: const BoxDecoration(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
                                     color: AppColors.primaryContainer,
                                     shape: BoxShape.circle,
+                                    border: Border.all(color: AppColors.border),
                                   ),
                                   clipBehavior: Clip.antiAlias,
-                                  child: cat.imageUrl.isNotEmpty
-                                      ? Image.network(
-                                          cat.imageUrl,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, _, _) => Icon(cat.iconData, color: AppColors.primary, size: 20),
-                                        )
-                                      : Icon(cat.iconData, color: AppColors.primary, size: 20),
+                                  child: Image.network(
+                                    cat.realImageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => Icon(cat.iconData, color: AppColors.primary, size: 20),
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: Icon(cat.iconData, color: AppColors.primary, size: 18),
+                                      );
+                                    },
+                                  ),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
