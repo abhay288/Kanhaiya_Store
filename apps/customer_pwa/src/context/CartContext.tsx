@@ -25,18 +25,46 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'ks_pwa_cart_v2';
+const getCartStorageKey = () => {
+  const phone = localStorage.getItem('kgs_profile_phone');
+  const token = localStorage.getItem('kanhaiya_auth_token');
+  if (phone) return `ks_pwa_cart_${phone.replace(/\D/g, '')}`;
+  if (token) return `ks_pwa_cart_${token.slice(-12)}`;
+  return 'ks_pwa_cart_guest';
+};
+
 const RECENT_STORAGE_KEY = 'ks_pwa_recent_viewed_v2';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      const key = getCartStorageKey();
+      const saved = localStorage.getItem(key);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
   });
+
+  // Listen for account change / login events and reload the scoped cart
+  useEffect(() => {
+    const handleAccountChange = () => {
+      try {
+        const key = getCartStorageKey();
+        const saved = localStorage.getItem(key);
+        setCart(saved ? JSON.parse(saved) : []);
+      } catch {
+        setCart([]);
+      }
+    };
+
+    window.addEventListener('kgs_profile_updated', handleAccountChange);
+    window.addEventListener('kgs_user_updated', handleAccountChange);
+    return () => {
+      window.removeEventListener('kgs_profile_updated', handleAccountChange);
+      window.removeEventListener('kgs_user_updated', handleAccountChange);
+    };
+  }, []);
 
   const [recentlyViewed, setRecentlyViewed] = useState<Product[]>(() => {
     try {
@@ -51,10 +79,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [adjustmentNotice, setAdjustmentNotice] = useState<string | null>(null);
 
-  // Save cart to local storage
+  // Save cart to user-scoped local storage
   useEffect(() => {
     try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+      const key = getCartStorageKey();
+      localStorage.setItem(key, JSON.stringify(cart));
     } catch {
       // ignore storage full
     }

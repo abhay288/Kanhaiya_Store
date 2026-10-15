@@ -3,25 +3,43 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/models/cart_item_model.dart';
 import '../../domain/models/cart_validation_model.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../catalog/domain/models/product_model.dart';
 import '../../../catalog/presentation/controllers/catalog_providers.dart';
 
-const String _cartPrefsKey = 'kgs_customer_cart_v1';
-
 class CartNotifier extends Notifier<List<CartItemModel>> {
+  String _currentAccountKey = 'guest';
+
+  String _getCartStorageKey([String? userId]) {
+    final key = userId ?? _currentAccountKey;
+    return 'kgs_customer_cart_${key.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')}';
+  }
+
   @override
   List<CartItemModel> build() {
-    _loadFromStorage();
+    // Watch auth user: whenever the user changes (login, logout, switch account), re-load their specific cart
+    final authState = ref.watch(authProvider);
+    final newAccountKey = authState.user?.id ?? authState.user?.email ?? 'guest';
+
+    if (_currentAccountKey != newAccountKey) {
+      _currentAccountKey = newAccountKey;
+      Future.microtask(() => _loadFromStorage());
+    } else {
+      _loadFromStorage();
+    }
     return [];
   }
 
   Future<void> _loadFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedJson = prefs.getString(_cartPrefsKey);
+      final key = _getCartStorageKey();
+      final savedJson = prefs.getString(key);
       if (savedJson != null && savedJson.isNotEmpty) {
         final List decoded = jsonDecode(savedJson) as List;
         state = decoded.map((i) => CartItemModel.fromJson(i as Map<String, dynamic>)).toList();
+      } else {
+        state = [];
       }
     } catch (_) {
       // ignore storage error
@@ -31,8 +49,9 @@ class CartNotifier extends Notifier<List<CartItemModel>> {
   Future<void> _persistToStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final key = _getCartStorageKey();
       final encoded = jsonEncode(state.map((i) => i.toJson()).toList());
-      await prefs.setString(_cartPrefsKey, encoded);
+      await prefs.setString(key, encoded);
     } catch (_) {
       // ignore storage error
     }
