@@ -19,11 +19,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
 
   useEffect(() => {
     const syncProfile = () => {
+      const localPhone = localStorage.getItem('kgs_profile_phone');
+      const localName = localStorage.getItem('kgs_profile_name');
+
       if (apiClient.getToken()) {
         apiClient.getMe()
           .then((res) => {
             if (res.data?.user) {
-              setUser(res.data.user);
+              const u = res.data.user;
+              // If backend user has phone, update localStorage
+              if (u.phoneNumber) {
+                localStorage.setItem('kgs_profile_phone', u.phoneNumber);
+              } else if (localPhone) {
+                // If backend user is missing phone but we have it from checkout, auto-sync it to profile
+                apiClient.updateProfile({ phoneNumber: localPhone }).catch(() => {});
+                u.phoneNumber = localPhone;
+              }
+              if (u.displayName) {
+                localStorage.setItem('kgs_profile_name', u.displayName);
+              } else if (localName) {
+                apiClient.updateProfile({ displayName: localName }).catch(() => {});
+                u.displayName = localName;
+              }
+              setUser({ ...u });
             }
           })
           .catch(() => {
@@ -164,7 +182,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
             {user ? user.displayName : 'Guest Customer'}
           </h3>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            {user ? (user.phoneNumber ? `+91 ${user.phoneNumber}` : user.email) : 'Sign in to sync grocery orders & address'}
+            {user
+              ? user.phoneNumber
+                ? `+91 ${user.phoneNumber}`
+                : localStorage.getItem('kgs_profile_phone')
+                ? `+91 ${localStorage.getItem('kgs_profile_phone')}`
+                : user.email
+              : localStorage.getItem('kgs_profile_phone')
+              ? `+91 ${localStorage.getItem('kgs_profile_phone')} (Saved from Checkout)`
+              : 'Sign in to sync grocery orders & address'}
           </p>
           <span
             style={{

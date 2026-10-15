@@ -37,15 +37,15 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
 
   // Quick Login State for unauthenticated customers
-  const [loginPhone, setLoginPhone] = useState('');
-  const [loginName, setLoginName] = useState('');
+  const [loginPhone, setLoginPhone] = useState(() => localStorage.getItem('kgs_profile_phone') || '');
+  const [loginName, setLoginName] = useState(() => localStorage.getItem('kgs_profile_name') || '');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Fulfillment & Form State
   const [fulfillmentMethod, setFulfillmentMethod] = useState<'DELIVERY' | 'PICKUP'>('PICKUP');
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerName, setCustomerName] = useState(() => localStorage.getItem('kgs_profile_name') || '');
+  const [customerPhone, setCustomerPhone] = useState(() => localStorage.getItem('kgs_profile_phone') || '');
   const [customerEmail, setCustomerEmail] = useState('');
   const [houseNumber, setHouseNumber] = useState('');
   const [street, setStreet] = useState('');
@@ -87,13 +87,29 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
       }
     });
 
+    // Prefill profile and mobile number: check local storage first, then backend profile
+    const localSavedPhone = localStorage.getItem('kgs_profile_phone');
+    const localSavedName = localStorage.getItem('kgs_profile_name');
+    if (localSavedPhone) setCustomerPhone(localSavedPhone);
+    if (localSavedName) setCustomerName(localSavedName);
+
     // If authenticated, prefill profile and fetch saved addresses
     if (userToken) {
       apiClient.getMe().then((res) => {
         if (res.data?.user) {
-          if (res.data.user.displayName) setCustomerName(res.data.user.displayName);
-          if (res.data.user.email) setCustomerEmail(res.data.user.email);
-          if (res.data.user.phoneNumber) setCustomerPhone(res.data.user.phoneNumber);
+          const u = res.data.user;
+          if (u.displayName) {
+            setCustomerName(u.displayName);
+            localStorage.setItem('kgs_profile_name', u.displayName);
+          }
+          if (u.email) setCustomerEmail(u.email);
+          if (u.phoneNumber) {
+            setCustomerPhone(u.phoneNumber);
+            localStorage.setItem('kgs_profile_phone', u.phoneNumber);
+          } else if (localSavedPhone) {
+            // Automatically sync local checkout mobile to user profile in MongoDB
+            apiClient.updateProfile({ phoneNumber: localSavedPhone }).catch(() => {});
+          }
         }
       }).catch(() => {});
 
@@ -122,11 +138,15 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
       if (res.data?.token) {
         setToken(res.data.token);
         setCustomerPhone(clean);
+        localStorage.setItem('kgs_profile_phone', clean);
         if (res.data.user?.displayName) {
           setCustomerName(res.data.user.displayName);
+          localStorage.setItem('kgs_profile_name', res.data.user.displayName);
         } else if (loginName.trim()) {
           setCustomerName(loginName.trim());
+          localStorage.setItem('kgs_profile_name', loginName.trim());
         }
+        window.dispatchEvent(new Event('kgs_profile_updated'));
         if (res.data.user?.email) {
           setCustomerEmail(res.data.user.email);
         }
@@ -253,9 +273,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
     setIsSubmitting(true);
 
     try {
+      const cleanPhone = customerPhone.replace(/\D/g, '');
+      const cleanName = customerName.trim();
+
+      // Store in localStorage for 2nd time checkout auto-prefill & profile screen
+      if (cleanPhone) {
+        localStorage.setItem('kgs_profile_phone', cleanPhone);
+      }
+      if (cleanName) {
+        localStorage.setItem('kgs_profile_name', cleanName);
+      }
+      window.dispatchEvent(new Event('kgs_profile_updated'));
+
       // Sync phone and name to Mongo profile
-      if (token && customerPhone.trim()) {
-        apiClient.updateProfile({ phoneNumber: customerPhone.trim(), displayName: customerName.trim() }).catch(() => {});
+      if (token && cleanPhone) {
+        apiClient.updateProfile({ phoneNumber: cleanPhone, displayName: cleanName }).catch(() => {});
       }
 
       // If user opted to save address
@@ -829,6 +861,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onBack, onOrderCompl
                   fontSize: '0.85rem',
                 }}
               />
+              <span style={{ fontSize: '0.68rem', color: '#174D3A', fontWeight: 600, display: 'block', marginTop: '3px' }}>
+                ✓ Automatically saved to your profile for next checkout
+              </span>
             </div>
           </div>
 

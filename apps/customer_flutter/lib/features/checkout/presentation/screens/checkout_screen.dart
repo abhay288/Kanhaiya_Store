@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -61,6 +62,28 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     _phoneController = TextEditingController(text: initialPhone);
 
     _loadSettingsAndCheckPin();
+    _loadSavedCheckoutPhone();
+  }
+
+  Future<void> _loadSavedCheckoutPhone() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedPhone = prefs.getString('saved_checkout_phone');
+      final savedName = prefs.getString('saved_checkout_name');
+
+      if (mounted) {
+        if (_phoneController.text.trim().isEmpty && savedPhone != null && savedPhone.isNotEmpty) {
+          setState(() {
+            _phoneController.text = savedPhone;
+          });
+        }
+        if (_nameController.text.trim().isEmpty && savedName != null && savedName.isNotEmpty) {
+          setState(() {
+            _nameController.text = savedName;
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadSettingsAndCheckPin() async {
@@ -430,6 +453,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       };
 
       final createdOrder = await repo.placeOrder(payload);
+
+      // Save to SharedPreferences so 2nd time checkout automatically pre-fills this number
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('saved_checkout_phone', phone);
+        if (_nameController.text.trim().isNotEmpty) {
+          await prefs.setString('saved_checkout_name', _nameController.text.trim());
+        }
+      } catch (_) {}
 
       // Realtime profile synchronization: update customer name and phone in profile
       if (authState.isAuthenticated) {

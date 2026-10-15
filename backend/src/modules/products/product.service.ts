@@ -253,12 +253,21 @@ export class ProductService {
       }
     }
 
-    // 2. Validate SKU uniqueness if provided
-    if (data.sku && data.sku.trim()) {
-      const existingSku = await Product.findOne({ sku: data.sku.trim() });
+    // 2. Validate or auto-generate unique SKU
+    let finalSku = data.sku && data.sku.trim() ? data.sku.trim().toUpperCase() : '';
+    if (finalSku) {
+      const existingSku = await Product.findOne({ sku: finalSku });
       if (existingSku) {
-        throw new BadRequestError(`Product with SKU '${data.sku}' already exists.`);
+        throw new BadRequestError(`Product with SKU '${finalSku}' already exists.`);
       }
+    } else {
+      // Auto-generate SKU: KGS-{PREFIX}-{TIMESTAMP_SUFFIX}
+      const prefix = data.name
+        .trim()
+        .slice(0, 3)
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, 'X') || 'KGS';
+      finalSku = `KGS-${prefix}-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
     }
 
     // 3. Generate unique slug
@@ -286,7 +295,7 @@ export class ProductService {
       isAvailable: data.isAvailable ?? (data.stockQuantity !== undefined ? Number(data.stockQuantity) > 0 : true),
       isPublished: data.isPublished ?? true,
       slug: finalSlug,
-      sku: data.sku && data.sku.trim() ? data.sku.trim() : undefined,
+      sku: finalSku,
       images,
     });
 

@@ -36,6 +36,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
   // Add Product State
   const [productName, setProductName] = useState('');
   const [categoryName, setCategoryName] = useState('Atta & Flours');
+  const [sku, setSku] = useState(() => {
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `KGS-ATT-GEN-${rand}`;
+  });
   const [brand, setBrand] = useState('');
   const [unit, setUnit] = useState('kg');
   const [packSize, setPackSize] = useState('1 kg');
@@ -50,6 +54,30 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
   const [submittingProduct, setSubmittingProduct] = useState(false);
   const [productSuccessMsg, setProductSuccessMsg] = useState<string | null>(null);
   const [recentlyCreatedProduct, setRecentlyCreatedProduct] = useState<any | null>(null);
+
+  const getCategorySkuCode = (cat: string) => {
+    const map: Record<string, string> = {
+      'Atta & Flours': 'ATT',
+      'Rice & Grains': 'RIC',
+      'Edible Oils & Ghee': 'OIL',
+      'Pulses & Dal': 'DAL',
+      'Spices & Masala': 'SPC',
+      'Dairy & Bakery': 'DRY',
+      'Snacks & Beverages': 'SNK',
+      'Personal Care': 'PCR',
+      'Household Cleaners': 'HCL',
+    };
+    return map[cat] || 'GEN';
+  };
+
+  const generateSkuNumber = (cat: string, name?: string) => {
+    const code = getCategorySkuCode(cat);
+    const namePart = name && name.trim().length >= 3
+      ? name.trim().slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, 'X')
+      : 'GEN';
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `KGS-${code}-${namePart}-${rand}`;
+  };
 
   // Load orders and admin notifications on mount with real-time polling
   useEffect(() => {
@@ -278,6 +306,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
 
       const payload = {
         name: productName.trim(),
+        sku: sku.trim() || generateSkuNumber(categoryName, productName),
         brand: brand.trim() || undefined,
         categoryId,
         unit: unit.toLowerCase(),
@@ -303,6 +332,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
       setProductSuccessMsg(`✅ Product "${productName}" is now LIVE on store! Dedicated product page created automatically.`);
       // Reset form
       setProductName('');
+      setSku(generateSkuNumber(categoryName, ''));
       setBrand('');
       setMrp('');
       setSellingPrice('');
@@ -1586,7 +1616,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                 type="text"
                 required
                 value={productName}
-                onChange={(e) => setProductName(e.target.value)}
+                onChange={(e) => {
+                  const newName = e.target.value;
+                  setProductName(newName);
+                  if (!sku || sku.startsWith('KGS-')) {
+                    setSku(generateSkuNumber(categoryName, newName));
+                  }
+                }}
                 placeholder="e.g. Aashirvaad Shudh Chakki Atta 10kg"
                 style={{
                   width: '100%',
@@ -1598,6 +1634,72 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               />
             </div>
 
+            {/* SKU (Stock Keeping Unit - Auto-Generated) */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>
+                  SKU Number (Stock Keeping Unit) *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSku(generateSkuNumber(categoryName, productName))}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Generate new unique SKU"
+                >
+                  <RefreshCw size={12} /> Auto-Generate New SKU
+                </button>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  required
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value.toUpperCase())}
+                  placeholder="e.g. KGS-ATT-AAS-4892"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                    fontSize: '0.85rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.04em',
+                    backgroundColor: '#f8fafc',
+                    color: '#0f172a',
+                  }}
+                />
+                <span
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    backgroundColor: '#dcfce7',
+                    color: '#166534',
+                  }}
+                >
+                  AUTO-GENERATED
+                </span>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+                Unique inventory SKU automatically generated for barcodes, stock tracking & invoices.
+              </div>
+            </div>
+
             {/* Category & Brand */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
@@ -1606,7 +1708,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                 </label>
                 <select
                   value={categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
+                  onChange={(e) => {
+                    const newCat = e.target.value;
+                    setCategoryName(newCat);
+                    setSku(generateSkuNumber(newCat, productName));
+                  }}
                   style={{
                     width: '100%',
                     padding: '9px 10px',
