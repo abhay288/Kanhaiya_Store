@@ -330,53 +330,156 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
     return matchesStatus && matchesQuery;
   });
 
+  // Executive KPI summary calculations
+  const totalRevenue = orders
+    .filter(o => o.paymentStatus === 'PAID')
+    .reduce((sum, o) => sum + (o.grandTotal ?? o.totalAmount ?? 0), 0);
+
+  const pendingOrdersCount = orders.filter(
+    o => o.orderStatus === 'PENDING' || o.orderStatus === 'CONFIRMED' || o.orderStatus === 'PACKING'
+  ).length;
+
+  const readyPickupCount = orders.filter(
+    o => o.orderStatus === 'READY_FOR_PICKUP'
+  ).length;
+
+  const completedOrdersCount = orders.filter(
+    o => o.orderStatus === 'COMPLETED'
+  ).length;
+
+  const statusCounts: Record<string, number> = {
+    ALL: orders.length,
+    PENDING: orders.filter(o => o.orderStatus === 'PENDING').length,
+    CONFIRMED: orders.filter(o => o.orderStatus === 'CONFIRMED').length,
+    PACKING: orders.filter(o => o.orderStatus === 'PACKING').length,
+    READY_FOR_PICKUP: orders.filter(o => o.orderStatus === 'READY_FOR_PICKUP').length,
+    COMPLETED: orders.filter(o => o.orderStatus === 'COMPLETED').length,
+    CANCELLED: orders.filter(o => o.orderStatus === 'CANCELLED').length,
+  };
+
   return (
-    <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto', color: 'var(--text-main)' }}>
-      {/* Admin Top Navigation & Header */}
-      <div
+    <div style={{ padding: '20px 24px', maxWidth: '1240px', margin: '0 auto', color: 'var(--text-main)', width: '100%' }}>
+      {/* Sleek Executive Admin Header */}
+      <header
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '16px',
-          paddingBottom: '12px',
-          borderBottom: '1px solid var(--border)'
+          gap: '16px',
+          padding: '16px 20px',
+          backgroundColor: '#ffffff',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+          marginBottom: '20px',
+          flexWrap: 'wrap',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={onBack}
+        {/* Left: Brand & Identity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '260px' }}>
+          <img
+            src="/logo.png"
+            alt="Kanhaiya General Store"
+            style={{
+              width: '46px',
+              height: '46px',
+              objectFit: 'contain',
+              borderRadius: '10px',
+              backgroundColor: '#ffffff',
+              padding: '2px',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+              border: '1px solid var(--border)',
+              flexShrink: 0,
+            }}
+          />
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h1 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+                Kanhaiya General Store
+              </h1>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  backgroundColor: '#dcfce7',
+                  color: '#166534',
+                  padding: '3px 8px',
+                  borderRadius: '20px',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Store Admin
+              </span>
+            </div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <MapPin size={12} color="var(--primary)" />
+              Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Actions, Live Sync Indicator, Alerts & Exit */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Live Sync Status Pill */}
+          <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              backgroundColor: 'transparent',
+              padding: '6px 12px',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '20px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              color: '#166534',
+            }}
+            title="Real-time live sync polling active"
+          >
+            <span className="live-pulse-dot" />
+            <span>Live Sync</span>
+          </div>
+
+          {/* Quick Create Order */}
+          <button
+            onClick={() => setShowCreateOrderModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              borderRadius: 'var(--radius-sm)',
               border: 'none',
-              color: 'var(--primary)',
+              backgroundColor: 'var(--primary)',
+              color: '#ffffff',
+              fontSize: '0.82rem',
               fontWeight: 700,
               cursor: 'pointer',
-              fontSize: '0.9rem',
+              boxShadow: '0 2px 6px rgba(23, 77, 58, 0.2)',
+              transition: 'all 0.15s ease',
             }}
           >
-            <ArrowLeft size={18} /> Exit Admin
+            <Plus size={16} />
+            <span>+ New Order</span>
           </button>
 
-          {/* Admin Customer Order Alerts Bell */}
+          {/* Alerts Bell */}
           <button
             onClick={() => setShowNotificationsModal(true)}
             style={{
               position: 'relative',
-              background: '#f1f5f9',
+              background: '#f8fafc',
               border: '1px solid var(--border)',
-              borderRadius: '8px',
-              padding: '6px 10px',
+              borderRadius: 'var(--radius-sm)',
+              padding: '8px 12px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               color: unreadAlertsCount > 0 ? '#b91c1c' : 'var(--text-main)',
               fontWeight: 700,
-              fontSize: '0.78rem',
+              fontSize: '0.82rem',
             }}
             title="Customer Order Alerts"
           >
@@ -390,8 +493,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                   fontSize: '0.65rem',
                   fontWeight: 900,
                   borderRadius: '10px',
-                  minWidth: '16px',
-                  height: '16px',
+                  minWidth: '18px',
+                  height: '18px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -402,45 +505,146 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               </span>
             )}
           </button>
+
+          {/* Exit Admin */}
+          <button
+            onClick={onBack}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#ffffff',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '8px 12px',
+              color: 'var(--text-muted)',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Exit Store</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Live KPI Metrics Summary Grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '12px',
+          marginBottom: '20px',
+        }}
+      >
+        {/* Total Orders */}
+        <div
+          onClick={() => { setActiveTab('orders'); setStatusFilter('ALL'); }}
+          style={{
+            padding: '14px 16px',
+            backgroundColor: '#ffffff',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Total Orders
+            </span>
+            <div style={{ width: 28, height: 28, borderRadius: '6px', backgroundColor: 'var(--primary-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+              <FileText size={16} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px' }}>
+            {orders.length}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            All-time customer requests
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img
-            src="/logo.png"
-            alt="Kanhaiya General Store Logo"
-            style={{
-              width: '44px',
-              height: '44px',
-              objectFit: 'contain',
-              borderRadius: '8px',
-              backgroundColor: '#ffffff',
-              padding: '2px',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.08)',
-              border: '1px solid var(--border)',
-              flexShrink: 0,
-            }}
-          />
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-main)' }}>
-                Kanhaiya General Store
-              </span>
-              <span
-                style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  backgroundColor: '#dcfce7',
-                  color: '#166534',
-                  padding: '2px 6px',
-                  borderRadius: '4px'
-                }}
-              >
-                Store Admin
-              </span>
+        {/* Pending Processing */}
+        <div
+          onClick={() => { setActiveTab('orders'); setStatusFilter('PENDING'); }}
+          style={{
+            padding: '14px 16px',
+            backgroundColor: '#ffffff',
+            borderRadius: 'var(--radius-md)',
+            border: pendingOrdersCount > 0 ? '1px solid #fed7aa' : '1px solid var(--border)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: pendingOrdersCount > 0 ? '#c2410c' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Pending Action
+            </span>
+            <div style={{ width: 28, height: 28, borderRadius: '6px', backgroundColor: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ea580c' }}>
+              <AlertCircle size={16} />
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat
+          </div>
+          <div style={{ fontSize: '1.45rem', fontWeight: 900, color: pendingOrdersCount > 0 ? '#c2410c' : 'var(--text-main)', marginTop: '4px' }}>
+            {pendingOrdersCount}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            Needs confirmation or packing
+          </div>
+        </div>
+
+        {/* Ready for Pickup */}
+        <div
+          onClick={() => { setActiveTab('orders'); setStatusFilter('READY_FOR_PICKUP'); }}
+          style={{
+            padding: '14px 16px',
+            backgroundColor: '#ffffff',
+            borderRadius: 'var(--radius-md)',
+            border: readyPickupCount > 0 ? '1px solid #bfdbfe' : '1px solid var(--border)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: readyPickupCount > 0 ? '#1d4ed8' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Ready for Pickup
+            </span>
+            <div style={{ width: 28, height: 28, borderRadius: '6px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+              <Package size={16} />
             </div>
+          </div>
+          <div style={{ fontSize: '1.45rem', fontWeight: 900, color: readyPickupCount > 0 ? '#1d4ed8' : 'var(--text-main)', marginTop: '4px' }}>
+            {readyPickupCount}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            Awaiting store customer pickup
+          </div>
+        </div>
+
+        {/* Total Collected Revenue */}
+        <div
+          style={{
+            padding: '14px 16px',
+            backgroundColor: '#ffffff',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Paid Revenue
+            </span>
+            <div style={{ width: 28, height: 28, borderRadius: '6px', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+              <CheckCircle size={16} />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#166534', marginTop: '4px' }}>
+            ₹{totalRevenue.toLocaleString('en-IN')}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            From {completedOrdersCount} verified orders
           </div>
         </div>
       </div>
@@ -584,119 +788,66 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
         </div>
       )}
 
-      {/* Admin Tab Switcher */}
+      {/* Executive Tab Switcher */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          display: 'flex',
           gap: '8px',
-          marginBottom: '20px'
+          overflowX: 'auto',
+          paddingBottom: '4px',
+          marginBottom: '20px',
+          borderBottom: '2px solid var(--border)',
         }}
       >
-        <button
-          onClick={() => setActiveTab('orders')}
-          style={{
-            padding: '10px 8px',
-            borderRadius: 'var(--radius-md)',
-            border: activeTab === 'orders' ? '2px solid var(--primary)' : '1px solid var(--border)',
-            backgroundColor: activeTab === 'orders' ? 'var(--primary-subtle)' : 'var(--surface)',
-            color: activeTab === 'orders' ? 'var(--primary)' : 'var(--text-main)',
-            fontWeight: 700,
-            fontSize: '0.82rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          <FileText size={18} />
-          <span>Orders ({orders.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('products')}
-          style={{
-            padding: '10px 8px',
-            borderRadius: 'var(--radius-md)',
-            border: activeTab === 'products' ? '2px solid var(--primary)' : '1px solid var(--border)',
-            backgroundColor: activeTab === 'products' ? 'var(--primary-subtle)' : 'var(--surface)',
-            color: activeTab === 'products' ? 'var(--primary)' : 'var(--text-main)',
-            fontWeight: 700,
-            fontSize: '0.82rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          <Package size={18} />
-          <span>Live/Unlive Products</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('addProduct')}
-          style={{
-            padding: '10px 8px',
-            borderRadius: 'var(--radius-md)',
-            border: activeTab === 'addProduct' ? '2px solid var(--primary)' : '1px solid var(--border)',
-            backgroundColor: activeTab === 'addProduct' ? 'var(--primary-subtle)' : 'var(--surface)',
-            color: activeTab === 'addProduct' ? 'var(--primary)' : 'var(--text-main)',
-            fontWeight: 700,
-            fontSize: '0.82rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          <PlusCircle size={18} />
-          <span>+ Add Product</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('users')}
-          style={{
-            padding: '10px 8px',
-            borderRadius: 'var(--radius-md)',
-            border: activeTab === 'users' ? '2px solid var(--primary)' : '1px solid var(--border)',
-            backgroundColor: activeTab === 'users' ? 'var(--primary-subtle)' : 'var(--surface)',
-            color: activeTab === 'users' ? 'var(--primary)' : 'var(--text-main)',
-            fontWeight: 700,
-            fontSize: '0.82rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          <Users size={18} />
-          <span>Mongo Users</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('settings')}
-          style={{
-            padding: '10px 8px',
-            borderRadius: 'var(--radius-md)',
-            border: activeTab === 'settings' ? '2px solid var(--primary)' : '1px solid var(--border)',
-            backgroundColor: activeTab === 'settings' ? 'var(--primary-subtle)' : 'var(--surface)',
-            color: activeTab === 'settings' ? 'var(--primary)' : 'var(--text-main)',
-            fontWeight: 700,
-            fontSize: '0.82rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          <Store size={18} />
-          <span>Store & Stats</span>
-        </button>
+        {[
+          { id: 'orders', label: 'Orders & Invoices', icon: FileText, count: orders.length },
+          { id: 'products', label: 'Product Catalog', icon: Package },
+          { id: 'addProduct', label: '+ Add Product', icon: PlusCircle },
+          { id: 'users', label: 'Customer Accounts', icon: Users },
+          { id: 'settings', label: 'Store Overview & Stats', icon: Store },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '11px 18px',
+                borderRadius: '8px 8px 0 0',
+                border: 'none',
+                borderBottom: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                backgroundColor: isActive ? '#ffffff' : 'transparent',
+                color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+                fontWeight: isActive ? 800 : 600,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Icon size={18} />
+              <span>{tab.label}</span>
+              {typeof tab.count === 'number' && (
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    backgroundColor: isActive ? 'var(--primary)' : '#e2e8f0',
+                    color: isActive ? '#ffffff' : '#475569',
+                    padding: '2px 7px',
+                    borderRadius: '12px',
+                  }}
+                >
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ======================================================== */}
@@ -704,81 +855,135 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
       {/* ======================================================== */}
       {activeTab === 'orders' && (
         <div>
-          {/* Filter and Refresh Bar */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-            <input
-              type="text"
-              placeholder="Search by order #, phone, customer..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)',
-                fontSize: '0.82rem',
-              }}
-            />
-            <button
-              onClick={() => setShowCreateOrderModal(true)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: 'none',
-                backgroundColor: 'var(--primary)',
-                color: '#fff',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-              }}
-            >
-              <Plus size={14} />
-              <span>+ New Order</span>
-            </button>
+          {/* Search, Filter and Actions Toolbar */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '10px',
+              marginBottom: '14px',
+              backgroundColor: '#ffffff',
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border)',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Search orders by order #, customer phone, name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border)',
+                  fontSize: '0.84rem',
+                  backgroundColor: '#f8fafc',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
             <button
               onClick={() => fetchOrders(false)}
               disabled={loadingOrders}
               style={{
-                padding: '8px 12px',
+                padding: '9px 14px',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border)',
-                backgroundColor: 'var(--surface)',
+                backgroundColor: '#ffffff',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.8rem',
+                gap: '6px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                color: 'var(--text-main)',
               }}
+              title="Refresh Orders from MongoDB"
             >
-              <RefreshCw size={14} className={loadingOrders ? 'spin' : ''} />
+              <RefreshCw size={15} className={loadingOrders ? 'spin' : ''} />
               <span>Refresh</span>
             </button>
           </div>
 
-          {/* Status Filter Chips */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '16px' }}>
-            {['ALL', 'PENDING', 'CONFIRMED', 'PACKING', 'READY_FOR_PICKUP', 'COMPLETED', 'CANCELLED'].map((st) => (
-              <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '16px',
-                  border: statusFilter === st ? '1px solid var(--primary)' : '1px solid var(--border)',
-                  backgroundColor: statusFilter === st ? 'var(--primary)' : 'var(--surface)',
-                  color: statusFilter === st ? '#fff' : 'var(--text-muted)',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                }}
-              >
-                {st}
-              </button>
-            ))}
+          {/* Status Filter Chips with real-time counters */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              paddingBottom: '8px',
+              marginBottom: '16px',
+            }}
+          >
+            {[
+              { id: 'ALL', label: 'All Orders' },
+              { id: 'PENDING', label: 'Pending' },
+              { id: 'CONFIRMED', label: 'Confirmed' },
+              { id: 'PACKING', label: 'Packing' },
+              { id: 'READY_FOR_PICKUP', label: 'Ready for Pickup' },
+              { id: 'COMPLETED', label: 'Completed' },
+              { id: 'CANCELLED', label: 'Cancelled' },
+            ].map(({ id, label }) => {
+              const count = statusCounts[id] ?? 0;
+              const isSelected = statusFilter === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setStatusFilter(id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
+                    backgroundColor: isSelected ? 'var(--primary)' : '#ffffff',
+                    color: isSelected ? '#ffffff' : 'var(--text-main)',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    boxShadow: isSelected ? '0 2px 4px rgba(23, 77, 58, 0.2)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span>{label}</span>
+                  <span
+                    style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
+                      color: isSelected ? '#ffffff' : 'var(--text-muted)',
+                      padding: '1px 6px',
+                      borderRadius: '10px',
+                    }}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Orders Listing */}
@@ -805,7 +1010,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               </p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '16px' }}>
               {filteredOrders.map((order) => {
                 const isPaid = order.paymentStatus === 'PAID';
                 const isCod = order.paymentMethod === 'COD' || order.paymentMethod === 'CASH_ON_PICKUP';
@@ -815,88 +1020,154 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                   <div
                     key={order._id || order.orderNumber}
                     style={{
-                      padding: '14px',
-                      backgroundColor: 'var(--surface)',
+                      padding: '16px',
+                      backgroundColor: '#ffffff',
                       border: '1px solid var(--border)',
                       borderRadius: 'var(--radius-md)',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '12px',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary)' }}>
-                            #{order.orderNumber || order._id?.slice(-6)}
-                          </span>
+                    <div>
+                      {/* Order Card Top: Order Number & Amount */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.96rem', fontWeight: 900, color: 'var(--primary)' }}>
+                              #{order.orderNumber || order._id?.slice(-6)}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                textTransform: 'uppercase',
+                                backgroundColor:
+                                  order.orderStatus === 'COMPLETED' ? '#dcfce7' :
+                                    order.orderStatus === 'CANCELLED' ? '#fee2e2' :
+                                      order.orderStatus === 'READY_FOR_PICKUP' ? '#dbeafe' : '#fef3c7',
+                                color:
+                                  order.orderStatus === 'COMPLETED' ? '#166534' :
+                                    order.orderStatus === 'CANCELLED' ? '#991b1b' :
+                                      order.orderStatus === 'READY_FOR_PICKUP' ? '#1e40af' : '#92400e',
+                              }}
+                            >
+                              {order.orderStatus}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '3px' }}>
+                            {new Date(order.createdAt).toLocaleString('en-IN', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })}
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)' }}>
+                            ₹{order.grandTotal ?? order.totalAmount ?? 0}
+                          </div>
                           <span
                             style={{
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
+                              fontSize: '0.66rem',
+                              fontWeight: 800,
                               padding: '2px 6px',
                               borderRadius: '4px',
-                              backgroundColor:
-                                order.orderStatus === 'COMPLETED' ? '#dcfce7' :
-                                  order.orderStatus === 'CANCELLED' ? '#fee2e2' :
-                                    order.orderStatus === 'READY_FOR_PICKUP' ? '#dbeafe' : '#fef3c7',
-                              color:
-                                order.orderStatus === 'COMPLETED' ? '#166534' :
-                                  order.orderStatus === 'CANCELLED' ? '#991b1b' :
-                                    order.orderStatus === 'READY_FOR_PICKUP' ? '#1e40af' : '#92400e',
+                              display: 'inline-block',
+                              marginTop: '2px',
+                              backgroundColor: isPaid ? '#dcfce7' : '#fee2e2',
+                              color: isPaid ? '#166534' : '#991b1b',
                             }}
                           >
-                            {order.orderStatus}
+                            {isPaid ? 'PAID' : 'PAYMENT PENDING'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          {new Date(order.createdAt).toLocaleString('en-IN', {
-                            dateStyle: 'medium',
-                            timeStyle: 'short',
-                          })}
+                      </div>
+
+                      {/* Customer Info Box with Direct Call & WhatsApp */}
+                      <div
+                        style={{
+                          padding: '10px 12px',
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #f1f5f9',
+                          borderRadius: '8px',
+                          fontSize: '0.78rem',
+                          marginBottom: '10px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '0.84rem' }}>
+                            👤 {order.customerName || 'Customer'}
+                          </span>
+                          {order.customerPhone && (
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <a
+                                href={`tel:${order.customerPhone}`}
+                                style={{
+                                  padding: '2px 6px',
+                                  backgroundColor: '#ffffff',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  color: 'var(--primary)',
+                                  textDecoration: 'none',
+                                  fontWeight: 700,
+                                }}
+                                title="Direct Phone Call"
+                              >
+                                📞 Call
+                              </a>
+                              <a
+                                href={`https://wa.me/91${order.customerPhone}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  padding: '2px 6px',
+                                  backgroundColor: '#25D366',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  color: '#ffffff',
+                                  textDecoration: 'none',
+                                  fontWeight: 700,
+                                }}
+                                title="Direct WhatsApp Message"
+                              >
+                                💬 WhatsApp
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem' }}>
+                          📞 +91 {order.customerPhone || 'N/A'} • {isWhatsapp ? '📲 WhatsApp UPI' : isCod ? '💵 Cash on Pickup' : order.paymentMethod}
+                          {order.pickupSlot && ` • Slot: ${order.pickupSlot}`}
                         </div>
                       </div>
 
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-main)' }}>
-                          ₹{order.grandTotal ?? order.totalAmount ?? 0}
+                      {/* Items Summary */}
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-main)', marginBottom: '8px' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Items ({order.items?.length || 0}): </span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                          {order.items?.map((it: any, i: number) => (
+                            <span
+                              key={i}
+                              style={{
+                                backgroundColor: '#f1f5f9',
+                                color: '#334155',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {it.productName || it.name} × {it.quantity || 1}
+                            </span>
+                          ))}
                         </div>
-                        <span
-                          style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            backgroundColor: isPaid ? '#dcfce7' : '#fee2e2',
-                            color: isPaid ? '#166534' : '#991b1b',
-                          }}
-                        >
-                          {isPaid ? 'PAID' : 'PAYMENT PENDING'}
-                        </span>
                       </div>
-                    </div>
-
-                    {/* Customer Info */}
-                    <div
-                      style={{
-                        padding: '8px 10px',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: '6px',
-                        fontSize: '0.78rem',
-                        marginBottom: '10px'
-                      }}
-                    >
-                      <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                        👤 {order.customerName || 'Customer'} • 📞 +91 {order.customerPhone || 'N/A'}
-                      </div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px' }}>
-                        Payment: {isWhatsapp ? '📲 WhatsApp UPI' : isCod ? '💵 Cash on Pickup' : order.paymentMethod}
-                        {order.pickupSlot && ` • Slot: ${order.pickupSlot}`}
-                      </div>
-                    </div>
-
-                    {/* Items Summary */}
-                    <div style={{ fontSize: '0.76rem', color: 'var(--text-main)', marginBottom: '10px' }}>
-                      <strong>Items ({order.items?.length || 0}):</strong>{' '}
-                      {order.items?.map((it: any) => `${it.productName || it.name} (${it.quantity || 1})`).join(', ')}
                     </div>
 
                     {/* Action Bar */}
@@ -905,9 +1176,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                         display: 'flex',
                         flexWrap: 'wrap',
                         gap: '6px',
-                        paddingTop: '8px',
+                        paddingTop: '10px',
                         borderTop: '1px solid var(--border)',
-                        alignItems: 'center'
+                        alignItems: 'center',
                       }}
                     >
                       <button
@@ -915,8 +1186,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          padding: '6px 10px',
+                          gap: '5px',
+                          padding: '7px 11px',
                           backgroundColor: 'var(--primary)',
                           color: '#fff',
                           border: 'none',
@@ -934,12 +1205,13 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                         value={order.orderStatus}
                         onChange={(e) => handleUpdateStatus(order._id || order.orderNumber, e.target.value)}
                         style={{
-                          padding: '5px 8px',
+                          padding: '6px 8px',
                           borderRadius: 'var(--radius-sm)',
                           border: '1px solid var(--border)',
                           fontSize: '0.75rem',
-                          fontWeight: 600,
-                          backgroundColor: 'var(--surface)',
+                          fontWeight: 700,
+                          backgroundColor: '#ffffff',
+                          cursor: 'pointer',
                         }}
                       >
                         <option value="PENDING">PENDING</option>
@@ -965,7 +1237,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                             cursor: 'pointer',
                           }}
                         >
-                          Verify WhatsApp UPI
+                          Verify UPI
                         </button>
                       )}
 
@@ -983,7 +1255,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                             cursor: 'pointer',
                           }}
                         >
-                          Collect Cash (₹{order.grandTotal ?? order.totalAmount ?? 0})
+                          Collect Cash
                         </button>
                       )}
 
@@ -994,7 +1266,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px',
-                          padding: '6px 10px',
+                          padding: '6px 8px',
                           backgroundColor: '#fef2f2',
                           color: '#dc2626',
                           border: '1px solid #fecaca',
@@ -1007,7 +1279,6 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                         title="Permanently Delete Order from MongoDB"
                       >
                         <Trash2 size={13} />
-                        <span>Delete</span>
                       </button>
                     </div>
                   </div>
@@ -1753,11 +2024,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               color: '#0f172a',
               borderRadius: 'var(--radius-md)',
               width: '100%',
-              maxWidth: '560px',
-              maxHeight: '90vh',
+              maxWidth: '640px',
+              maxHeight: '92vh',
               overflowY: 'auto',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              boxShadow: '0 20px 45px rgba(0,0,0,0.3)',
               position: 'relative',
+              border: '1px solid #cbd5e1',
             }}
           >
             {/* Modal Controls Bar (hidden during print) */}
@@ -1767,15 +2039,26 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '12px 16px',
+                padding: '14px 18px',
                 borderBottom: '1px solid #e2e8f0',
                 backgroundColor: '#f8fafc',
+                position: 'sticky',
+                top: 0,
+                zIndex: 20,
+                gap: '12px',
+                flexWrap: 'wrap',
               }}
             >
-              <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>
-                Invoice Preview — #{selectedOrderForInvoice.orderNumber}
-              </span>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#0f172a' }}>
+                  Retail Invoice Preview
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+                  #{selectedOrderForInvoice.orderNumber} • ₹{selectedOrderForInvoice.grandTotal ?? selectedOrderForInvoice.totalAmount ?? 0}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <button
                   onClick={() => {
                     const downloadUrl = `https://kanhaiya-store-backend.onrender.com/api/v1/orders/${selectedOrderForInvoice._id}/invoice`;
@@ -1785,17 +2068,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '6px 10px',
+                    padding: '7px 11px',
                     backgroundColor: '#0284c7',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
+                  title="Download PDF"
                 >
-                  <Download size={14} /> Download PDF
+                  <Download size={14} /> PDF
                 </button>
                 <button
                   onClick={() => {
@@ -1816,17 +2100,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '6px 10px',
+                    padding: '7px 11px',
                     backgroundColor: '#4f46e5',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
+                  title="Share Invoice link & details"
                 >
-                  <Share2 size={14} /> Share (All Apps)
+                  <Share2 size={14} /> Share
                 </button>
                 <button
                   onClick={() => window.print()}
@@ -1834,15 +2119,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '6px 10px',
+                    padding: '7px 11px',
                     backgroundColor: '#166534',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
+                  title="Print Invoice"
                 >
                   <Printer size={14} /> Print
                 </button>
@@ -1856,14 +2142,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '6px 10px',
+                    padding: '7px 11px',
                     backgroundColor: '#25D366',
                     color: '#fff',
                     textDecoration: 'none',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                   }}
+                  title="Send via WhatsApp"
                 >
                   <Share2 size={14} /> WhatsApp
                 </a>
@@ -1872,12 +2159,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                   style={{
                     backgroundColor: '#e2e8f0',
                     border: 'none',
-                    borderRadius: '4px',
-                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    padding: '7px 10px',
                     cursor: 'pointer',
+                    color: '#334155',
                   }}
+                  title="Close Invoice"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
               </div>
             </div>

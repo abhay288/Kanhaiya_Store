@@ -228,7 +228,7 @@ export const App: React.FC = () => {
 
   return (
     <CartProvider>
-      <div className="app-container">
+      <div className={`app-container ${isAdminOpen ? 'app-container-admin' : ''}`}>
         {!isOnline && (
           <div className="offline-banner">
             <WifiOff size={16} />
