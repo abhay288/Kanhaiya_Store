@@ -1,13 +1,17 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../catalog/presentation/controllers/catalog_providers.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -128,35 +132,133 @@ class ProfileScreen extends ConsumerWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        Clipboard.setData(const ClipboardData(
-                          text: 'Kanhaiya General Store, Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
-                        ));
-                        Navigator.pop(ctx);
+                        const addressText = 'Kanhaiya General Store\nFatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh - 209304\nGoogle Maps: https://maps.app.goo.gl/29REpExE1db9jAbK9';
+                        Clipboard.setData(const ClipboardData(text: addressText));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Store address copied to clipboard!'),
+                          SnackBar(
+                            content: const Text('Store address copied to clipboard!'),
                             backgroundColor: AppColors.primary,
-                            duration: Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 4),
+                            action: SnackBarAction(
+                              label: 'SHARE',
+                              textColor: Colors.white,
+                              onPressed: () {
+                                SharePlus.instance.share(
+                                  ShareParams(
+                                    text: addressText,
+                                    subject: 'Kanhaiya General Store Location & Address',
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         );
+                        _showAddressShareDialog(context, addressText);
                       },
                       icon: const Icon(Icons.copy, size: 16),
                       label: const Text('Copy Address'),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    tooltip: 'Share Store Address',
+                    onPressed: () {
+                      const addressText = 'Kanhaiya General Store\nFatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh - 209304\nGoogle Maps: https://maps.app.goo.gl/29REpExE1db9jAbK9';
+                      SharePlus.instance.share(
+                        ShareParams(
+                          text: addressText,
+                          subject: 'Kanhaiya General Store Location & Address',
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.share, size: 18, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        final uri = Uri.parse(
-                          'https://www.google.com/maps/search/?api=1&query=Fatehpur+Roshnai+Sarvankhera+Kanpur+Dehat',
-                        );
-                        if (await canLaunchUrl(uri)) {
+                        final uri = Uri.parse('https://maps.app.goo.gl/29REpExE1db9jAbK9');
+                        try {
                           await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } catch (_) {
+                          await launchUrl(uri);
                         }
                       },
                       icon: const Icon(Icons.directions, size: 16),
                       label: const Text('Open in Maps'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAddressShareDialog(BuildContext context, String addressText) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (copyCtx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Icon(Icons.check_circle, color: AppColors.primary, size: 38),
+              const SizedBox(height: 10),
+              const Text(
+                'Address Copied to Clipboard!',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'You can paste it anywhere, or share it directly with family & friends via WhatsApp or other apps.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(copyCtx),
+                      child: const Text('Done'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(copyCtx);
+                        SharePlus.instance.share(
+                          ShareParams(
+                            text: addressText,
+                            subject: 'Kanhaiya General Store Location & Address',
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.share, size: 16),
+                      label: const Text('Share Now'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -618,16 +720,8 @@ class ProfileScreen extends ConsumerWidget {
                           title: const Text('Clear App Cache', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                           subtitle: const Text('Free up local storage and reset cached catalog', style: TextStyle(fontSize: 11)),
                           onTap: () {
-                            PaintingBinding.instance.imageCache.clear();
-                            PaintingBinding.instance.imageCache.clearLiveImages();
                             Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Image cache cleared successfully!'),
-                                backgroundColor: AppColors.primary,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
+                            _clearAppCache(context, ref);
                           },
                         ),
                         const Divider(height: 1),
@@ -635,12 +729,10 @@ class ProfileScreen extends ConsumerWidget {
                           leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary, size: 20),
                           title: const Text('Privacy Policy', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                           subtitle: const Text('Read how we safeguard customer data and privacy', style: TextStyle(fontSize: 11)),
-                          trailing: const Icon(Icons.open_in_new, size: 14),
-                          onTap: () async {
-                            final uri = Uri.parse('https://kanhaiya-store-backend.onrender.com/privacy.html');
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
-                            }
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 12),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            context.push('/privacy-policy');
                           },
                         ),
                         const Divider(height: 1),
@@ -659,6 +751,85 @@ class ProfileScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _clearAppCache(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.cleaning_services_outlined, color: AppColors.primary),
+            SizedBox(width: 10),
+            Text('Clear App Cache', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'This will clear cached images, local temporary files, and refresh store products. Do you want to proceed?',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Clear Now'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    int deletedFilesCount = 0;
+    int deletedBytes = 0;
+
+    try {
+      // 1. Clear Flutter Image Cache in memory
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+
+      // 2. Clear disk temporary files
+      final tempDir = await getTemporaryDirectory();
+      if (tempDir.existsSync()) {
+        final entities = tempDir.listSync(recursive: true, followLinks: false);
+        for (final entity in entities) {
+          try {
+            if (entity is File) {
+              deletedBytes += entity.lengthSync();
+              entity.deleteSync();
+              deletedFilesCount++;
+            }
+          } catch (_) {}
+        }
+      }
+
+      // 3. Invalidate catalog version to fetch fresh data
+      ref.read(catalogVersionProvider.notifier).bump();
+    } catch (_) {}
+
+    if (context.mounted) {
+      final sizeMb = (deletedBytes / (1024 * 1024)).toStringAsFixed(1);
+      final msg = deletedFilesCount > 0
+          ? 'App cache cleared ($sizeMb MB freed) and catalog refreshed!'
+          : 'App cache cleared and store catalog refreshed successfully!';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _onMyInvoicesTap(BuildContext context, bool isAuthenticated) {
