@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft, Package, PlusCircle, FileText, CheckCircle,
   AlertCircle, Printer, Share2, Upload, Trash2, Image as ImageIcon,
-  Phone, Mail, MapPin, RefreshCw, X, Store, Users, Plus, Eye, Bell
+  Phone, Mail, MapPin, RefreshCw, X, Store, Users, Plus, Eye, Bell, Download
 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { AdminProductsManagement } from '../components/admin/AdminProductsManagement';
@@ -1775,7 +1775,59 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>
                 Invoice Preview — #{selectedOrderForInvoice.orderNumber}
               </span>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  onClick={() => {
+                    const downloadUrl = `https://kanhaiya-store-backend.onrender.com/api/v1/orders/${selectedOrderForInvoice._id}/invoice`;
+                    window.open(downloadUrl, '_blank');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 10px',
+                    backgroundColor: '#0284c7',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Download size={14} /> Download PDF
+                </button>
+                <button
+                  onClick={() => {
+                    const shareText = `🧾 KANHAIYA GENERAL STORE - RETAIL INVOICE #${selectedOrderForInvoice.orderNumber}\nCustomer: ${selectedOrderForInvoice.customerName || 'Customer'}\nTotal: ₹${selectedOrderForInvoice.grandTotal ?? selectedOrderForInvoice.totalAmount ?? 0}\nStatus: ${selectedOrderForInvoice.orderStatus}\nPickup: Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, UP\nPhone: +91 9936269347`;
+                    const invoiceUrl = `https://kanhaiya-store-backend.onrender.com/api/v1/orders/${selectedOrderForInvoice._id}/invoice`;
+                    if (navigator.share) {
+                      navigator.share({
+                        title: `Invoice #${selectedOrderForInvoice.orderNumber}`,
+                        text: shareText,
+                        url: invoiceUrl,
+                      }).catch(() => {});
+                    } else {
+                      navigator.clipboard.writeText(`${shareText}\n\nDownload Invoice: ${invoiceUrl}`);
+                      alert('📋 Invoice details and PDF download link copied to clipboard! You can paste and share via any app.');
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 10px',
+                    backgroundColor: '#4f46e5',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Share2 size={14} /> Share (All Apps)
+                </button>
                 <button
                   onClick={() => window.print()}
                   style={{
@@ -1792,11 +1844,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                     cursor: 'pointer',
                   }}
                 >
-                  <Printer size={14} /> Print / PDF
+                  <Printer size={14} /> Print
                 </button>
                 <a
                   href={`https://wa.me/91${selectedOrderForInvoice.customerPhone || '9936269347'}?text=${encodeURIComponent(
-                    `Hello ${selectedOrderForInvoice.customerName || 'Customer'}! Here is your retail invoice for Order #${selectedOrderForInvoice.orderNumber} (₹${selectedOrderForInvoice.grandTotal ?? selectedOrderForInvoice.totalAmount}) from Kanhaiya General Store.`
+                    `Hello ${selectedOrderForInvoice.customerName || 'Customer'}! Here is your retail invoice for Order #${selectedOrderForInvoice.orderNumber} (₹${selectedOrderForInvoice.grandTotal ?? selectedOrderForInvoice.totalAmount}) from Kanhaiya General Store: https://kanhaiya-store-backend.onrender.com/api/v1/orders/${selectedOrderForInvoice._id}/invoice`
                   )}`}
                   target="_blank"
                   rel="noreferrer"

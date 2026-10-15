@@ -215,7 +215,7 @@ export class InvoiceService {
           );
 
         doc.text(
-          `For assistance, contact WhatsApp/Phone: ${settings.storeWhatsapp} | Email: ${settings.supportEmail || 'kanhaiyaastore@gmail.com'}`,
+          `For assistance, contact WhatsApp/Phone: +91 ${settings.storeWhatsapp || settings.storePhone || '9936269347'} | Email: ${settings.supportEmail || 'kanhaiyaastore@gmail.com'}`,
           40,
           footerY + 12,
           { align: 'center', width: 515 }
