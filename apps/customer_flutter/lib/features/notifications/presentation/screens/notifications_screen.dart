@@ -259,7 +259,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           child: Text(
                             item.isOrderRelated
                                 ? (item.orderNumber ?? 'Order Alert')
-                                : item.appName,
+                                : 'Store Update',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,

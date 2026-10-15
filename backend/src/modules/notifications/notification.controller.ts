@@ -43,54 +43,7 @@ export class NotificationController {
         .limit(50)
         .lean();
 
-      // If database has no notifications yet, provide default announcements
-      if (!notifications || notifications.length === 0) {
-        if (isAdmin) {
-          notifications = [
-            {
-              _id: new mongoose.Types.ObjectId(),
-              title: 'Store Operations Alert Center Active',
-              message: 'You will receive immediate alerts here whenever a customer places an order.',
-              type: 'ADMIN_ALERT' as any,
-              appName: 'Store Admin Alert',
-              logoUrl: 'assets/images/kgs_logo.png',
-              isAdmin: true,
-              isRead: false,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            } as any,
-          ];
-        } else {
-          notifications = [
-            {
-              _id: new mongoose.Types.ObjectId(),
-              title: 'Welcome to Kanhaiya General Store!',
-              message: 'Order fresh groceries, staples, and daily essentials online for instant counter pickup at Sarvankhera.',
-              type: 'ORDER_CONFIRMED' as any,
-              appName: 'Kanhaiya General Store',
-              logoUrl: 'assets/images/kgs_logo.png',
-              isAdmin: false,
-              isRead: false,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            } as any,
-            {
-              _id: new mongoose.Types.ObjectId(),
-              title: 'Pure Desi Ghee & Fresh Oil Available',
-              message: 'Restocked today with authentic brands. Counter pickup ready in 15 minutes.',
-              type: 'ORDER_PREPARING' as any,
-              appName: 'Kanhaiya General Store',
-              logoUrl: 'assets/images/kgs_logo.png',
-              isAdmin: false,
-              isRead: true,
-              createdAt: new Date(Date.now() - 3600000 * 4),
-              updatedAt: new Date(Date.now() - 3600000 * 4),
-            } as any,
-          ];
-        }
-      }
-
-      return sendSuccess(res, notifications, 'Notifications retrieved');
+      return sendSuccess(res, notifications || [], 'Notifications retrieved');
     } catch (err) {
       next(err);
     }

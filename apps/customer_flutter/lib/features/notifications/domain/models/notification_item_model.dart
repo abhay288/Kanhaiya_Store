@@ -96,8 +96,6 @@ class NotificationItemModel {
   }
 
   bool get isOrderRelated =>
-      orderNumber != null ||
-      orderId != null ||
-      type.startsWith('ORDER_') ||
-      type == 'PAYMENT_VERIFIED';
+      (orderNumber != null && orderNumber!.isNotEmpty) ||
+      (orderId != null && orderId!.isNotEmpty && !id.startsWith('welcome_') && !id.startsWith('promo_') && type != 'STORE_ANNOUNCEMENT');
 }
