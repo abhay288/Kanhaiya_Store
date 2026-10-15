@@ -10,6 +10,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/localization/app_language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../catalog/presentation/controllers/catalog_providers.dart';
 
@@ -721,6 +723,35 @@ class ProfileScreen extends ConsumerWidget {
                           },
                         ),
                         const Divider(height: 1),
+                        // Hindi Language Mode Switch
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final currentLang = ref.watch(appLanguageProvider);
+                            final isHi = currentLang == 'hi';
+                            return SwitchListTile(
+                              secondary: const Icon(Icons.translate, color: AppColors.primary, size: 22),
+                              title: const Text('हिंदी भाषा (Hindi Mode)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                              subtitle: Text(
+                                isHi ? 'ऐप की भाषा हिंदी में सक्रिय है (टैप करके बदलें)' : 'Switch entire app language to Hindi',
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              value: isHi,
+                              activeThumbColor: AppColors.primary,
+                              activeTrackColor: AppColors.primaryContainer,
+                              onChanged: (val) {
+                                ref.read(appLanguageProvider.notifier).setLanguage(val ? 'hi' : 'en');
+                                setModalState(() {});
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(val ? 'भाषा बदलकर हिंदी कर दी गई है' : 'Language changed to English'),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        const Divider(height: 1),
                         ListTile(
                           leading: const Icon(Icons.cleaning_services_outlined, color: AppColors.primary, size: 20),
                           title: const Text('Clear App Cache', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
@@ -912,9 +943,10 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final lang = ref.watch(appLanguageProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Account')),
+      appBar: AppBar(title: Text('My Account'.tr(lang))),
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: () async {
@@ -1055,7 +1087,7 @@ class ProfileScreen extends ConsumerWidget {
                   ],
                   ListTile(
                     leading: const Icon(Icons.storefront_outlined, color: AppColors.primary),
-                    title: const Text('Store Location & Counter', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    title: Text('Store Location & Counter'.tr(lang), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                     subtitle: const Text('Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, UP', style: TextStyle(fontSize: 11)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                     onTap: () => _showStoreLocationModal(context),
@@ -1063,7 +1095,7 @@ class ProfileScreen extends ConsumerWidget {
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.call_outlined, color: AppColors.primary),
-                    title: const Text('Store Helpline & Support', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    title: Text('Store Helpline & Support'.tr(lang), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                     subtitle: const Text('+91 9936269347 • kanhaiyaastore@gmail.com', style: TextStyle(fontSize: 11)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                     onTap: () => _showHelplineModal(context, ref, user),
@@ -1071,15 +1103,15 @@ class ProfileScreen extends ConsumerWidget {
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.receipt_long_outlined, color: AppColors.primary),
-                    title: const Text('My Invoices', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    title: Text('My Invoices'.tr(lang), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                     onTap: () => _onMyInvoicesTap(context, authState.isAuthenticated),
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.settings_outlined, color: AppColors.primary),
-                    title: const Text('Settings & Preferences', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    subtitle: const Text('Notifications, clear cache & privacy policy', style: TextStyle(fontSize: 11)),
+                    title: Text('Settings & Preferences'.tr(lang), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    subtitle: Text(lang == 'hi' ? 'भाषा, सूचनाएं, कैश और गोपनीयता नीति' : 'Language, notifications, clear cache & privacy policy', style: const TextStyle(fontSize: 11)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                     onTap: () => _showSettingsModal(context, ref),
                   ),

@@ -138,8 +138,6 @@ class _AdminProductEditScreenState extends State<AdminProductEditScreen> {
     }
   }
 
-  List<CategoryModel> get _topCategories => _allCategories.where((c) => c.parentId == null).toList();
-
   List<CategoryModel> get _subcategories =>
       _allCategories.where((c) => c.parentId != null && c.parentId == _selectedCategoryId).toList();
 
@@ -1154,12 +1152,18 @@ class _AdminProductEditScreenState extends State<AdminProductEditScreen> {
                                 // Category
                                 Expanded(
                                   child: DropdownButtonFormField<String>(
-                                    initialValue: _selectedCategoryId,
+                                    initialValue: _allCategories.any((c) => c.id == _selectedCategoryId)
+                                        ? _selectedCategoryId
+                                        : (_allCategories.isNotEmpty ? _allCategories.first.id : null),
                                     decoration: const InputDecoration(labelText: 'Category *'),
-                                    items: _topCategories.map((c) {
+                                    items: _allCategories.map((c) {
+                                      final parent = c.parentId != null
+                                          ? _allCategories.where((p) => p.id == c.parentId).firstOrNull
+                                          : null;
+                                      final displayName = parent != null ? '${c.name} (${parent.name})' : c.name;
                                       return DropdownMenuItem<String>(
                                         value: c.id,
-                                        child: Text(c.name, overflow: TextOverflow.ellipsis),
+                                        child: Text(displayName, overflow: TextOverflow.ellipsis),
                                       );
                                     }).toList(),
                                     onChanged: (val) {

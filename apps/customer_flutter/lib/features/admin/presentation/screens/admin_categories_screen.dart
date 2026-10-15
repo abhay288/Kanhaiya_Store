@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/network/api_error_handler.dart';
+import '../../../../core/localization/app_language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../../catalog/domain/models/category_model.dart';
 import '../../data/admin_catalog_repository.dart';
 
-class AdminCategoriesScreen extends StatefulWidget {
+class AdminCategoriesScreen extends ConsumerStatefulWidget {
   const AdminCategoriesScreen({super.key});
 
   @override
-  State<AdminCategoriesScreen> createState() => _AdminCategoriesScreenState();
+  ConsumerState<AdminCategoriesScreen> createState() => _AdminCategoriesScreenState();
 }
 
-class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
+class _AdminCategoriesScreenState extends ConsumerState<AdminCategoriesScreen> {
   final AdminCatalogRepository _repo = adminCatalogRepository;
   final TextEditingController _searchController = TextEditingController();
 
@@ -57,6 +60,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
   }
 
   Future<void> _showCategoryDialog({CategoryModel? existing}) async {
+    final lang = ref.read(appLanguageProvider);
     final isEditing = existing != null;
     final nameController = TextEditingController(text: existing?.name ?? '');
     final slugController = TextEditingController(text: existing?.slug ?? '');
@@ -65,7 +69,10 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
 
     bool isActive = existing?.isActive ?? true;
     String? selectedParentId = existing?.parentId;
-    String imageUrl = existing?.imageUrl ?? '';
+    String imageUrl = existing?.imageUrl.isNotEmpty == true
+        ? existing!.imageUrl
+        : (existing?.realImageUrl ?? '');
+    final imageUrlController = TextEditingController(text: imageUrl);
     String imagePublicId = existing?.imagePublicId ?? '';
     bool isUploadingImage = false;
     bool isSubmitting = false;
@@ -105,6 +112,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                 setDialogState(() {
                   imageUrl = uploaded['url'] as String? ?? '';
                   imagePublicId = uploaded['publicId'] as String? ?? '';
+                  imageUrlController.text = imageUrl;
                   isUploadingImage = false;
                 });
               } catch (err) {
@@ -125,7 +133,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
             return AlertDialog(
               backgroundColor: Colors.white,
               title: Text(
-                isEditing ? 'Edit Category' : 'Create Category',
+                isEditing ? 'Edit Category'.tr(lang) : 'Create Category'.tr(lang),
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
               ),
               content: SizedBox(
@@ -140,8 +148,8 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                         child: Column(
                           children: [
                             Container(
-                              width: 100,
-                              height: 100,
+                              width: 110,
+                              height: 110,
                               decoration: BoxDecoration(
                                 color: AppColors.surfaceVariant,
                                 borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
@@ -166,24 +174,62 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                                         ),
                             ),
                             const SizedBox(height: 6),
-                            TextButton.icon(
-                              onPressed: isUploadingImage ? null : pickAndUploadImage,
-                              icon: const Icon(Icons.cloud_upload_outlined, size: 16),
-                              label: Text(
-                                imageUrl.isNotEmpty ? 'Change Image' : 'Upload Image',
-                                style: const TextStyle(fontSize: 12),
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: isUploadingImage ? null : pickAndUploadImage,
+                                  icon: const Icon(Icons.cloud_upload_outlined, size: 16),
+                                  label: Text(
+                                    imageUrl.isNotEmpty ? 'Change Image'.tr(lang) : 'Upload Image'.tr(lang),
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                                if (imageUrl.isNotEmpty) ...[
+                                  const SizedBox(width: 8),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      setDialogState(() {
+                                        imageUrl = '';
+                                        imagePublicId = '';
+                                        imageUrlController.clear();
+                                      });
+                                    },
+                                    icon: const Icon(Icons.delete_outline, size: 16, color: AppColors.error),
+                                    label: Text(
+                                      'Delete'.tr(lang),
+                                      style: const TextStyle(fontSize: 12, color: AppColors.error),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: AppDimensions.md),
+                      const SizedBox(height: AppDimensions.sm),
+
+                      // Direct Image URL Field
+                      TextField(
+                        controller: imageUrlController,
+                        decoration: InputDecoration(
+                          labelText: 'Image URL'.tr(lang),
+                          hintText: 'https://images.unsplash.com/...',
+                          prefixIcon: const Icon(Icons.link, size: 18),
+                        ),
+                        onChanged: (val) {
+                          setDialogState(() {
+                            imageUrl = val.trim();
+                          });
+                        },
+                      ),
+                      const SizedBox(height: AppDimensions.sm),
 
                       // Name
                       TextField(
                         controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Category Name *',
+                        decoration: InputDecoration(
+                          labelText: '${'Category Name'.tr(lang)} *',
                           hintText: 'e.g. Atta, Rice & Dal',
                         ),
                       ),
@@ -227,8 +273,8 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                       TextField(
                         controller: descController,
                         maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: 'Description',
+                        decoration: InputDecoration(
+                          labelText: 'Description'.tr(lang),
                           hintText: 'Short notes about items in this kirana section',
                         ),
                       ),
@@ -248,7 +294,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                       // Active toggle
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Active Category', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        title: Text('Active Category'.tr(lang), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                         subtitle: const Text('Visible to customers in the catalog', style: TextStyle(fontSize: 11)),
                         value: isActive,
                         activeThumbColor: AppColors.primary,
@@ -265,7 +311,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
               actions: [
                 TextButton(
                   onPressed: isSubmitting ? null : () => Navigator.of(dialogCtx).pop(),
-                  child: const Text('Cancel'),
+                  child: Text('Cancel'.tr(lang)),
                 ),
                 ElevatedButton(
                   onPressed: isSubmitting
@@ -281,6 +327,10 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
 
                           setDialogState(() => isSubmitting = true);
 
+                          final finalImageUrl = imageUrlController.text.trim().isNotEmpty
+                              ? imageUrlController.text.trim()
+                              : imageUrl;
+
                           final payload = <String, dynamic>{
                             'name': name,
                             if (slugController.text.trim().isNotEmpty) 'slug': slugController.text.trim(),
@@ -288,7 +338,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                             'displayOrder': int.tryParse(orderController.text.trim()) ?? 0,
                             'isActive': isActive,
                             'parentId': selectedParentId,
-                            if (imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+                            if (finalImageUrl.isNotEmpty) 'imageUrl': finalImageUrl,
                             if (imagePublicId.isNotEmpty) 'imagePublicId': imagePublicId,
                           };
 
@@ -329,7 +379,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : Text(isEditing ? 'Save Changes' : 'Create'),
+                      : Text(isEditing ? 'Save Changes'.tr(lang) : 'Create'.tr(lang)),
                 ),
               ],
             );
@@ -399,18 +449,50 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Manage Categories'),
+        title: Text('Manage Categories'.tr(lang)),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        actions: [
+          InkWell(
+            onTap: () => ref.read(appLanguageProvider.notifier).toggleLanguage(),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              margin: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white60, width: 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.language, size: 14, color: Colors.white),
+                  const SizedBox(width: 4),
+                  Text(
+                    lang == 'hi' ? 'हिंदी' : 'EN',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('New Category'),
+        label: Text('New Category'.tr(lang)),
         onPressed: () => _showCategoryDialog(),
       ),
       body: Column(
@@ -489,9 +571,9 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                                         borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                                       ),
                                       clipBehavior: Clip.antiAlias,
-                                      child: cat.imageUrl.isNotEmpty
+                                      child: cat.realImageUrl.isNotEmpty
                                           ? Image.network(
-                                              cat.imageUrl,
+                                              cat.realImageUrl,
                                               fit: BoxFit.cover,
                                               errorBuilder: (context, error, stackTrace) => Icon(
                                                 cat.iconData,
@@ -525,7 +607,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                                         ],
                                         Expanded(
                                           child: Text(
-                                            cat.name,
+                                            cat.name.tr(lang),
                                             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                                           ),
                                         ),

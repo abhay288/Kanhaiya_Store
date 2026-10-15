@@ -5,6 +5,8 @@ import '../constants/app_dimensions.dart';
 import '../utils/currency_formatter.dart';
 import '../../features/catalog/domain/models/product_model.dart';
 import '../../features/cart/presentation/controllers/cart_controller.dart';
+import '../localization/app_language_provider.dart';
+import '../localization/app_strings.dart';
 
 class ProductCard extends ConsumerWidget {
   final ProductModel product;
@@ -18,6 +20,7 @@ class ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     final cart = ref.watch(cartProvider);
     final inCartItem = cart.where((item) => item.product.id == product.id).firstOrNull;
     final inCartCount = inCartItem?.quantity ?? 0;
@@ -67,7 +70,9 @@ class ProductCard extends ConsumerWidget {
                         ],
                       ),
                       child: Text(
-                        product.inStock ? '${product.stockQuantity} in stock' : 'Out of stock',
+                        product.inStock
+                            ? '${product.stockQuantity} ${'in stock'.tr(lang)}'
+                            : 'Out of stock'.tr(lang),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
@@ -173,7 +178,7 @@ class ProductCard extends ConsumerWidget {
                         icon: const Icon(Icons.check, size: 14),
                         label: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text('Added ($inCartCount)'),
+                          child: Text('${'Added'.tr(lang)} ($inCartCount)'),
                         ),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -187,9 +192,9 @@ class ProductCard extends ConsumerWidget {
                               }
                             : null,
                         icon: const Icon(Icons.add, size: 14),
-                        label: const FittedBox(
+                        label: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text('Add to Cart'),
+                          child: Text('Add to Cart'.tr(lang)),
                         ),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 4),

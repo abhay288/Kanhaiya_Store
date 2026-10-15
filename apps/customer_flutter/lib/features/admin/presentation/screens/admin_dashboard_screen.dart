@@ -20,6 +20,8 @@ import 'admin_customers_screen.dart';
 import 'admin_store_settings_screen.dart';
 import '../../../notifications/presentation/controllers/notification_controller.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../../core/localization/app_language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -81,6 +83,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLanguageProvider);
     final authState = ref.watch(authProvider);
     final unreadNotificationCount = ref.watch(unreadNotificationCountProvider);
     final notificationsAsync = ref.watch(notificationsNotifierProvider);
@@ -125,12 +128,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  const Text(
                     'Kanhaiya General Store',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -141,10 +144,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     ),
                   ),
                   Text(
-                    'Store Admin Center',
+                    'Store Admin Center'.tr(lang),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
@@ -159,6 +162,35 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         foregroundColor: Colors.white,
         elevation: 1,
         actions: [
+          // Language Switcher Badge
+          InkWell(
+            onTap: () => ref.read(appLanguageProvider.notifier).toggleLanguage(),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white60, width: 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.language, size: 14, color: Colors.white),
+                  const SizedBox(width: 4),
+                  Text(
+                    lang == 'hi' ? 'हिंदी' : 'EN',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           // Live Customer Order Alert Bell
           Stack(
             alignment: Alignment.center,
@@ -404,28 +436,28 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 mainAxisSpacing: 10,
                 children: [
                   _buildMetricCard(
-                    'Orders Today',
+                    'Orders Today'.tr(lang),
                     _metrics != null
                         ? '${_metrics!.ordersToday}'
                         : (_isLoadingMetrics ? '...' : '0'),
                     AppColors.primary,
                   ),
                   _buildMetricCard(
-                    'Awaiting Action',
+                    'Awaiting Action'.tr(lang),
                     _metrics != null
                         ? '${_metrics!.awaitingConfirmation}'
                         : (_isLoadingMetrics ? '...' : '0'),
                     AppColors.warning,
                   ),
                   _buildMetricCard(
-                    'Collected Today',
+                    'Collected Today'.tr(lang),
                     _metrics != null
                         ? CurrencyFormatter.format(_metrics!.verifiedPayments)
                         : (_isLoadingMetrics ? '...' : CurrencyFormatter.format(0)),
                     AppColors.secondary,
                   ),
                   _buildMetricCard(
-                    'Low / Out Stock',
+                    'Low / Out Stock'.tr(lang),
                     _metrics != null
                         ? '${_metrics!.lowStockCount + _metrics!.outOfStockCount}'
                         : (_isLoadingMetrics ? '...' : '0'),
@@ -436,9 +468,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               const SizedBox(height: AppDimensions.lg),
 
               // Section 1: Analytics, Reports & Settings
-              const Text(
-                'Analytics, Reports & Settings',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              Text(
+                'Business Analytics'.tr(lang),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppDimensions.sm),
 
@@ -447,7 +479,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   Expanded(
                     child: _buildActionTile(
                       context,
-                      title: 'Business Analytics',
+                      title: 'Business Analytics'.tr(lang),
                       subtitle: 'KPIs, sales trends & payment channels',
                       icon: Icons.insights_outlined,
                       color: AppColors.primary,
@@ -462,7 +494,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   Expanded(
                     child: _buildActionTile(
                       context,
-                      title: 'Store Reports & Audits',
+                      title: 'Store Reports & Audits'.tr(lang),
                       subtitle: 'Product ranking, stock replenishment & CSV',
                       icon: Icons.assessment_outlined,
                       color: Colors.indigo,
@@ -482,7 +514,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   Expanded(
                     child: _buildActionTile(
                       context,
-                      title: 'Customer Directory',
+                      title: 'Customer Directory'.tr(lang),
                       subtitle: 'Customer spend & lifetime order history',
                       icon: Icons.people_outline,
                       color: AppColors.accent,
@@ -497,7 +529,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   Expanded(
                     child: _buildActionTile(
                       context,
-                      title: 'Store Settings',
+                      title: 'Store Settings'.tr(lang),
                       subtitle: 'Store profile, checkout alerts & GSTIN',
                       icon: Icons.tune_outlined,
                       color: Colors.teal.shade700,
@@ -513,9 +545,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               const SizedBox(height: AppDimensions.lg),
 
               // Section 2: Order Fulfillment & Invoices
-              const Text(
-                'Order Fulfillment & Invoices',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              Text(
+                'Order Fulfillment & Invoices'.tr(lang),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppDimensions.sm),
 
@@ -530,9 +562,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     backgroundColor: AppColors.primary,
                     child: Icon(Icons.assignment_outlined, color: Colors.white, size: 22),
                   ),
-                  title: const Text(
-                    'Order Operations Dashboard',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary),
+                  title: Text(
+                    'Order Operations Dashboard'.tr(lang),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary),
                   ),
                   subtitle: const Text(
                     'Manage fulfillment lifecycle, verify WhatsApp QR payments, collect COD & issue invoices',
@@ -549,9 +581,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               const SizedBox(height: AppDimensions.lg),
 
               // Section 3: Catalog & Inventory Management
-              const Text(
-                'Catalog & Inventory Management',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              Text(
+                'Catalog & Inventory Management'.tr(lang),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppDimensions.sm),
 
@@ -560,7 +592,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   Expanded(
                     child: _buildActionTile(
                       context,
-                      title: 'Manage Products',
+                      title: 'Manage Products'.tr(lang),
                       subtitle: 'CRUD, Cloudinary gallery, pricing & stock',
                       icon: Icons.inventory_2_outlined,
                       color: AppColors.primary,
@@ -575,7 +607,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   Expanded(
                     child: _buildActionTile(
                       context,
-                      title: 'Manage Categories',
+                      title: 'Manage Categories'.tr(lang),
                       subtitle: 'Taxonomy, subcategories & icon imagery',
                       icon: Icons.category_outlined,
                       color: AppColors.accent,
@@ -602,9 +634,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     backgroundColor: AppColors.accent,
                     child: Icon(Icons.warehouse_outlined, color: Colors.white, size: 20),
                   ),
-                  title: const Text(
-                    'Inventory & Stock Control',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
+                  title: Text(
+                    'Inventory & Stock Control'.tr(lang),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
                   ),
                   subtitle: const Text(
                     'Real-time stock levels, movement audits, receipts, damaged goods & low-stock alerts',
@@ -632,9 +664,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     backgroundColor: AppColors.primary,
                     child: Icon(Icons.add, color: Colors.white, size: 20),
                   ),
-                  title: const Text(
-                    'Add New Catalog Item',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.onPrimaryContainer),
+                  title: Text(
+                    'Add New Catalog Item'.tr(lang),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.onPrimaryContainer),
                   ),
                   subtitle: const Text(
                     'Upload images to Cloudinary, set selling price, pack size & stock',

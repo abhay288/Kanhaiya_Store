@@ -35,37 +35,37 @@ class CategoryModel {
     final lowerName = name.toLowerCase();
     final lowerSlug = slug.toLowerCase();
 
-    // 1. Atta, Flours & Sooji (Golden wheat grains & fresh chakki ground wheat flour)
+    // 1. Atta / Flours (User image: stainless-steel-cup-with-brown-powder-xw8pttN8MBg)
     if (lowerName.contains('atta') || lowerName.contains('flour') || lowerSlug.contains('atta')) {
-      return 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=600&q=80';
+      return 'https://images.unsplash.com/photo-1610725664285-7c57e6eeac3f?w=600&auto=format&fit=crop&q=80';
     }
-    // 2. Rice & Grains (Authentic aromatic basmati rice & cereal grains)
+    // 2. Rice and Grains (User image: a-wooden-scoop-of-rice-on-top-of-a-pile-of-rice-E85Jb-wW7Tg)
     if (lowerName.contains('rice') || lowerName.contains('grain') || lowerSlug.contains('rice')) {
-      return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
+      return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80';
     }
-    // 3. Dals & Pulses (Real Indian lentils - Toor, Moong, Chana dal)
+    // 3. Dals & Pulses (User image: various-dried-crops-in-chinese-market-QrxA1sI2vdU)
     if (lowerName.contains('dal') || lowerName.contains('pulse') || lowerSlug.contains('dal')) {
-      return 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80';
+      return 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80';
     }
-    // 4. Edible Oils & Pure Desi Ghee (Traditional golden mustard oil & cow ghee in jar)
+    // 4. Oils & Ghee (User image: clear-glass-cruet-bottle-uOBApnN_K7w)
     if (lowerName.contains('oil') || lowerName.contains('ghee') || lowerSlug.contains('oil') || lowerSlug.contains('ghee')) {
-      return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
+      return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&auto=format&fit=crop&q=80';
     }
-    // 5. Spices & Masalas (Rich Indian whole spices, cloves, cardamom, turmeric, red chilli)
+    // 5. Spices & Masalas (User image: a-table-topped-with-different-types-of-spices-Nihdo084Yos)
     if (lowerName.contains('spice') || lowerName.contains('masala') || lowerSlug.contains('spice')) {
-      return 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80';
+      return 'https://images.unsplash.com/photo-1716816211590-c15a328a5ff0?w=600&auto=format&fit=crop&q=80';
     }
-    // 6. Snacks & Biscuits (Crispy tea biscuits, namkeen, cookies & snacks)
+    // 6. Snacks & Biscuits (User image: brown-cookies-on-clear-plastic-container-HQ5uoUW2Bq8)
     if (lowerName.contains('snack') || lowerName.contains('biscuit') || lowerSlug.contains('snack')) {
-      return 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=600&q=80';
+      return 'https://images.unsplash.com/photo-1585329678734-285d3adee73c?w=600&auto=format&fit=crop&q=80';
     }
-    // 7. Cleaning & Household Essentials (Detergents, laundry essentials, cleaner bottles)
+    // 7. Cleaning & Household Essentials (User image: a-person-in-orange-gloves-is-pouring-liquid-into-a-blue-bucket-ETXHDCZRXA0)
     if (lowerName.contains('clean') || lowerName.contains('household') || lowerSlug.contains('clean')) {
-      return 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=600&q=80';
+      return 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=600&auto=format&fit=crop&q=80';
     }
-    // 8. Personal Care (Soap, shampoo, skincare & personal hygiene products)
+    // 8. Personal Care / Personal Care Products (User image: shelves-filled-with-various-beauty-products-and-bottles--vh8EALTGII)
     if (lowerName.contains('personal') || lowerName.contains('care') || lowerSlug.contains('personal')) {
-      return 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80';
+      return 'https://images.unsplash.com/photo-1770925758916-44e22e159542?w=600&auto=format&fit=crop&q=80';
     }
     // 9. Dairy & Bakery (Fresh milk, butter & dairy goods)
     if (lowerName.contains('dairy') || lowerName.contains('milk') || lowerName.contains('bakery')) {

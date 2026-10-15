@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/localization/app_language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 import '../../../../core/widgets/feedback_views.dart';
 import '../../../../core/widgets/product_card.dart';
 import '../../../cart/presentation/controllers/cart_controller.dart';
@@ -19,6 +21,7 @@ class HomeScreen extends ConsumerWidget {
     final collectionsAsync = ref.watch(collectionsProvider);
     final cartItemCount = ref.watch(cartItemCountProvider);
     final unreadNotificationCount = ref.watch(unreadNotificationCountProvider);
+    final lang = ref.watch(appLanguageProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -167,16 +170,16 @@ class HomeScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.search, color: AppColors.textTertiary, size: 20),
-                      SizedBox(width: 10),
+                      const Icon(Icons.search, color: AppColors.textTertiary, size: 20),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Search atta, dal, spices, milk products & breads...',
+                          'Search atta, dal, spices, milk products & breads...'.tr(lang),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                          style: const TextStyle(color: AppColors.textTertiary, fontSize: 13),
                         ),
                       ),
                     ],
@@ -189,13 +192,13 @@ class HomeScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Shop by Category',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  Text(
+                    'Shop by Category'.tr(lang),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                   TextButton(
                     onPressed: () => context.go('/categories'),
-                    child: const Text('View All', style: TextStyle(color: AppColors.primary)),
+                    child: Text('View All'.tr(lang), style: const TextStyle(color: AppColors.primary)),
                   ),
                 ],
               ),
@@ -249,7 +252,7 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  cat.name.split(',')[0],
+                                  cat.name.split(',')[0].tr(lang),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.center,
@@ -285,8 +288,9 @@ class HomeScreen extends ConsumerWidget {
                       if (collections.essentials.isNotEmpty) ...[
                         _buildSectionHeader(
                           context,
-                          title: 'Popular Everyday Essentials',
+                          title: 'Popular Everyday Essentials'.tr(lang),
                           onViewAll: () => context.push('/products'),
+                          seeAllLabel: 'See all'.tr(lang),
                         ),
                         const SizedBox(height: AppDimensions.sm),
                         _buildProductGrid(context, collections.essentials.take(4).toList()),
@@ -297,10 +301,11 @@ class HomeScreen extends ConsumerWidget {
                       if (collections.featured.isNotEmpty) ...[
                         _buildSectionHeader(
                           context,
-                          title: 'Featured Products',
+                          title: 'Featured Products'.tr(lang),
                           icon: Icons.star_outline,
                           iconColor: AppColors.accent,
                           onViewAll: () => context.push('/products'),
+                          seeAllLabel: 'See all'.tr(lang),
                         ),
                         const SizedBox(height: AppDimensions.sm),
                         _buildProductGrid(context, collections.featured.take(4).toList()),
@@ -311,10 +316,11 @@ class HomeScreen extends ConsumerWidget {
                       if (collections.bestsellers.isNotEmpty) ...[
                         _buildSectionHeader(
                           context,
-                          title: 'Bestsellers',
+                          title: 'Bestsellers'.tr(lang),
                           icon: Icons.local_fire_department_outlined,
                           iconColor: Colors.deepOrange,
                           onViewAll: () => context.push('/products'),
+                          seeAllLabel: 'See all'.tr(lang),
                         ),
                         const SizedBox(height: AppDimensions.sm),
                         _buildProductGrid(context, collections.bestsellers.take(4).toList()),
@@ -325,10 +331,11 @@ class HomeScreen extends ConsumerWidget {
                       if (collections.newArrivals.isNotEmpty) ...[
                         _buildSectionHeader(
                           context,
-                          title: 'New Arrivals',
+                          title: 'New Arrivals'.tr(lang),
                           icon: Icons.new_releases_outlined,
                           iconColor: AppColors.primary,
                           onViewAll: () => context.push('/products'),
+                          seeAllLabel: 'See all'.tr(lang),
                         ),
                         const SizedBox(height: AppDimensions.sm),
                         _buildProductGrid(context, collections.newArrivals.take(4).toList()),
@@ -355,6 +362,7 @@ class HomeScreen extends ConsumerWidget {
     IconData? icon,
     Color? iconColor,
     VoidCallback? onViewAll,
+    String? seeAllLabel,
   }) {
     return Row(
       children: [
@@ -373,7 +381,7 @@ class HomeScreen extends ConsumerWidget {
         if (onViewAll != null)
           TextButton(
             onPressed: onViewAll,
-            child: const Text('See all', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+            child: Text(seeAllLabel ?? 'See all', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
           ),
       ],
     );

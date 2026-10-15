@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/widgets/feedback_views.dart';
+import '../../../../core/localization/app_language_provider.dart';
+import '../../../../core/localization/app_strings.dart';
 import 'package:customer_flutter/features/catalog/presentation/controllers/catalog_providers.dart';
 
 class CategoryScreen extends ConsumerWidget {
@@ -11,11 +13,12 @@ class CategoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLanguageProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Categories'),
+        title: Text('All Categories'.tr(lang)),
       ),
       body: categoriesAsync.when(
         data: (categories) => ListView.separated(
@@ -50,11 +53,11 @@ class CategoryScreen extends ConsumerWidget {
                   ),
                 ),
                 title: Text(
-                  cat.name,
+                  cat.name.tr(lang),
                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                 ),
                 subtitle: Text(
-                  '${cat.itemCount} items available',
+                  '${cat.itemCount} ${'items available'.tr(lang)}',
                   style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textTertiary),
@@ -67,7 +70,7 @@ class CategoryScreen extends ConsumerWidget {
             );
           },
         ),
-        loading: () => const LoadingView(message: 'Loading categories...'),
+        loading: () => LoadingView(message: 'Loading categories...'.tr(lang)),
         error: (err, _) => ErrorView(
           message: 'Error loading categories: $err',
           onRetry: () => ref.invalidate(categoriesProvider),
