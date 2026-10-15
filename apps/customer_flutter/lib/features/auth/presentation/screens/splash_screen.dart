@@ -310,48 +310,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                             ],
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 1.5,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.transparent,
-                                    const Color(0xFFC58B43).withValues(alpha: 0.8),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text(
-                                'TRUSTED SINCE 2004',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 2.5,
-                                  color: const Color(0xFFFBF4EA).withValues(alpha: 0.9),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              width: 28,
-                              height: 1.5,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    const Color(0xFFC58B43).withValues(alpha: 0.8),
-                                    Colors.transparent,
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
