@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,19 +21,33 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   List<CustomerOrderModel> _orders = [];
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchOrders();
+      _fetchOrders(silent: false);
+    });
+
+    // Real-time synchronization: Poll orders every 8 seconds in background
+    _refreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (mounted) {
+        _fetchOrders(silent: true);
+      }
     });
   }
 
-  Future<void> _fetchOrders() async {
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchOrders({bool silent = false}) async {
     final authState = ref.read(authProvider);
     if (!authState.isAuthenticated) {
-      if (mounted) {
+      if (mounted && !silent) {
         setState(() {
           _isLoading = false;
           _errorMessage = null;
@@ -42,10 +57,12 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       final repo = ref.read(checkoutRepositoryProvider);
@@ -54,10 +71,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         setState(() {
           _orders = list;
           _isLoading = false;
+          _errorMessage = null;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !silent) {
         final raw = e.toString().replaceAll('Exception: ', '').toLowerCase();
         String userMsg = 'Unable to load orders. Please check your internet connection.';
         if (raw.contains('unauthorized') || raw.contains('authentication required')) {

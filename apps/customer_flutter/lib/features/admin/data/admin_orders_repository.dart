@@ -10,7 +10,20 @@ class AdminOrdersRepository {
 
   /// Fetch Admin Order Metrics Dashboard KPIs
   Future<Map<String, int>> getMetrics() async {
-    final res = await _dio.get('/orders/admin/metrics');
+    Response res;
+    try {
+      res = await _dio.get('/orders/admin/metrics');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        try {
+          res = await _dio.get('/admin/orders/metrics');
+        } catch (_) {
+          return {};
+        }
+      } else {
+        rethrow;
+      }
+    }
     final raw = res.data['data'] as Map<String, dynamic>? ?? {};
     return raw.map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0));
   }
@@ -48,10 +61,18 @@ class AdminOrdersRepository {
 
     Response res;
     try {
-      res = await _dio.get('/orders/admin', queryParameters: params);
+      res = await _dio.get('/orders/admin/all', queryParameters: params);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
-        res = await _dio.get('/orders/admin/all', queryParameters: params);
+        try {
+          res = await _dio.get('/orders/admin', queryParameters: params);
+        } on DioException catch (e2) {
+          if (e2.response?.statusCode == 404) {
+            res = await _dio.get('/admin/orders', queryParameters: params);
+          } else {
+            rethrow;
+          }
+        }
       } else {
         rethrow;
       }

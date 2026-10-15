@@ -391,9 +391,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final idempotencyKey = 'flutter-idem-${DateTime.now().millisecondsSinceEpoch}';
 
       final payload = {
-        'items': cartItems.map((i) => {
-          'productId': i.product.id,
-          'quantity': i.quantity,
+        'items': cartItems.map((i) {
+          const legacyMap = {
+            'prod-1': '65f1a0000000000000000001',
+            'prod-2': '65f1a0000000000000000002',
+            'prod-3': '65f1a0000000000000000003',
+            'prod-4': '65f1a0000000000000000004',
+            'prod-5': '65f1a0000000000000000005',
+            'prod-6': '65f1a0000000000000000006',
+            'prod-7': '65f1a0000000000000000007',
+            'prod-8': '65f1a0000000000000000008',
+          };
+          final pId = legacyMap[i.product.id] ?? i.product.id;
+          return {
+            'productId': pId,
+            'quantity': i.quantity,
+          };
         }).toList(),
         'fulfillmentMethod': _fulfillmentMethod,
         'customerName': _nameController.text.trim(),
@@ -417,6 +430,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       };
 
       final createdOrder = await repo.placeOrder(payload);
+
+      // Realtime profile synchronization: update customer name and phone in profile
+      if (authState.isAuthenticated) {
+        ref.read(authProvider.notifier).updateProfile(
+          displayName: _nameController.text.trim(),
+          phoneNumber: phone,
+        );
+      }
 
       // Clear cart on successful order creation
       ref.read(cartProvider.notifier).clearCart();
@@ -740,7 +761,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          (_settings.storeAddress.isNotEmpty && !_settings.storeAddress.contains('New Delhi'))
+                          (_settings.storeAddress.isNotEmpty &&
+                                  !_settings.storeAddress.contains('New Delhi') &&
+                                  !_settings.storeAddress.contains('Kanpur D.'))
                               ? _settings.storeAddress
                               : 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
                           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),

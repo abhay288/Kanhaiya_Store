@@ -15,20 +15,26 @@ export const AdminProductsManagement: React.FC<AdminProductsManagementProps> = (
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(false);
+
+    // Real-time synchronization: poll products inventory every 10 seconds
+    const interval = setInterval(() => {
+      fetchProducts(true);
+    }, 10000);
 
     const handleCatalogUpdated = () => {
-      fetchProducts();
+      fetchProducts(true);
     };
     window.addEventListener('kgs_catalog_updated', handleCatalogUpdated);
 
     return () => {
+      clearInterval(interval);
       window.removeEventListener('kgs_catalog_updated', handleCatalogUpdated);
     };
   }, []);
 
-  const fetchProducts = async () => {
-    setLoading(true);
+  const fetchProducts = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await apiClient.getProducts({ limit: 100 });
       if (res.data?.items) {
@@ -39,10 +45,12 @@ export const AdminProductsManagement: React.FC<AdminProductsManagementProps> = (
         setProducts([]);
       }
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      onToast('error', `Failed to load products: ${e?.message || 'Server error'}`);
+      if (!silent) {
+        const e = err as { message?: string };
+        onToast('error', `Failed to load products: ${e?.message || 'Server error'}`);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -215,7 +223,7 @@ export const AdminProductsManagement: React.FC<AdminProductsManagementProps> = (
           ))}
 
           <button
-            onClick={fetchProducts}
+            onClick={() => fetchProducts(false)}
             disabled={loading}
             style={{
               padding: '6px 12px',

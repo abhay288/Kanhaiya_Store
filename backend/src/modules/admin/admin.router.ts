@@ -23,6 +23,7 @@ import {
   updateStoreSettingsAdmin,
 } from './analytics.controller';
 import { AdminUsersController } from './users.controller';
+import { OrderController } from '../orders/order.controller';
 
 const router = Router();
 
@@ -50,6 +51,19 @@ router.get('/reports/inventory', authenticate, authorizeAdmin, getInventoryRepor
 router.get('/reports/orders', authenticate, authorizeAdmin, getOrderReports);
 router.get('/reports/payments', authenticate, authorizeAdmin, getOrderReports);
 router.get('/reports/export/:reportType', authenticate, authorizeAdmin, exportReport);
+
+// Direct Admin Order Operations & Tracking Endpoints
+router.get('/orders/metrics', authenticate, authorizeAdmin, OrderController.getAdminMetrics as any);
+router.get('/orders/all', authenticate, authorizeAdmin, OrderController.listAdminOrders as any);
+router.get('/orders', authenticate, authorizeAdmin, OrderController.listAdminOrders as any);
+router.get('/orders/:idOrNumber', authenticate, authorizeAdmin, OrderController.getOrder as any);
+router.patch('/orders/:idOrNumber/status', authenticate, authorizeAdmin, OrderController.updateStatus as any);
+router.post('/orders/:idOrNumber/status', authenticate, authorizeAdmin, OrderController.updateStatus as any);
+router.patch('/orders/:idOrNumber/verify-payment', authenticate, authorizeAdmin, OrderController.verifyWhatsAppPayment as any);
+router.post('/orders/:idOrNumber/verify-payment', authenticate, authorizeAdmin, OrderController.verifyWhatsAppPayment as any);
+router.patch('/orders/:idOrNumber/collect-cod', authenticate, authorizeAdmin, OrderController.collectCodPayment as any);
+router.post('/orders/:idOrNumber/collect-cod', authenticate, authorizeAdmin, OrderController.collectCodPayment as any);
+router.delete('/orders/:idOrNumber', authenticate, authorizeAdmin, OrderController.deleteAdminOrder as any);
 
 // Direct MongoDB User Management CRUD
 router.get('/users', authenticate, authorizeAdmin, AdminUsersController.listUsers);

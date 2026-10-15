@@ -51,11 +51,28 @@ export const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({ onTo
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(false);
+
+    // Real-time synchronization: Poll MongoDB users every 8 seconds silently
+    const interval = setInterval(() => {
+      fetchUsers(true);
+    }, 8000);
+
+    const handleExternalUserUpdate = () => {
+      fetchUsers(true);
+    };
+    window.addEventListener('kgs_profile_updated', handleExternalUserUpdate);
+    window.addEventListener('kgs_user_updated', handleExternalUserUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('kgs_profile_updated', handleExternalUserUpdate);
+      window.removeEventListener('kgs_user_updated', handleExternalUserUpdate);
+    };
   }, [roleFilter, statusFilter]);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await apiClient.getAdminUsers({
         search: search.trim() || undefined,
@@ -69,10 +86,12 @@ export const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({ onTo
         setUsers([]);
       }
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      onToast('error', `Failed to load MongoDB users: ${e?.message || 'Error'}`);
+      if (!silent) {
+        const e = err as { message?: string };
+        onToast('error', `Failed to load MongoDB users: ${e?.message || 'Error'}`);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -136,10 +155,12 @@ export const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({ onTo
         email: editEmail.trim() || undefined,
         role: editRole,
         status: editStatus,
+        isActive: editStatus === 'ACTIVE',
       });
       onToast('success', `✅ User details updated in MongoDB!`);
       setEditingUser(null);
-      fetchUsers();
+      fetchUsers(true);
+      window.dispatchEvent(new CustomEvent('kgs_user_updated', { detail: { userId: editingUser._id } }));
     } catch (err: unknown) {
       const e = err as { message?: string };
       onToast('error', `Failed to update user: ${e?.message || 'Error'}`);
@@ -159,6 +180,7 @@ export const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({ onTo
       await apiClient.updateAdminUser(user._id, { role: nextRole });
       onToast('success', `User role changed to ${nextRole}`);
       setUsers((prev) => prev.map((u) => (u._id === user._id ? { ...u, role: nextRole } : u)));
+      window.dispatchEvent(new CustomEvent('kgs_user_updated', { detail: { userId: user._id, role: nextRole } }));
     } catch (err: unknown) {
       const e = err as { message?: string };
       onToast('error', e?.message || 'Role change failed');
@@ -171,11 +193,13 @@ export const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({ onTo
       onToast('error', 'Root Administrator cannot be blocked.');
       return;
     }
-    const nextStatus: 'ACTIVE' | 'BLOCKED' = user.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE';
+    const currentIsActive = user.status === 'ACTIVE' || (user as any).isActive === true;
+    const nextStatus: 'ACTIVE' | 'BLOCKED' = currentIsActive ? 'BLOCKED' : 'ACTIVE';
     try {
-      await apiClient.updateAdminUser(user._id, { status: nextStatus });
+      await apiClient.updateAdminUser(user._id, { status: nextStatus, isActive: nextStatus === 'ACTIVE' });
       onToast('success', `User is now ${nextStatus}`);
-      setUsers((prev) => prev.map((u) => (u._id === user._id ? { ...u, status: nextStatus } : u)));
+      setUsers((prev) => prev.map((u) => (u._id === user._id ? { ...u, status: nextStatus, isActive: nextStatus === 'ACTIVE' } : u)));
+      window.dispatchEvent(new CustomEvent('kgs_user_updated', { detail: { userId: user._id, status: nextStatus } }));
     } catch (err: unknown) {
       const e = err as { message?: string };
       onToast('error', e?.message || 'Status change failed');
@@ -357,7 +381,7 @@ export const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({ onTo
           ))}
 
           <button
-            onClick={fetchUsers}
+            onClick={() => fetchUsers(false)}
             disabled={loading}
             style={{
               padding: '6px 12px',
@@ -404,7 +428,7 @@ export const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({ onTo
           {users.map((u) => {
             const isRootAdmin = u.email === ROOT_ADMIN_EMAIL;
             const isAdmin = u.role === 'ADMIN';
-            const isActive = u.status === 'ACTIVE';
+            const isActive = u.status === 'ACTIVE' || (u as any).isActive === true;
             const initials = (u.displayName || u.name || u.phone || u.email || 'U').slice(0, 2).toUpperCase();
 
             return (

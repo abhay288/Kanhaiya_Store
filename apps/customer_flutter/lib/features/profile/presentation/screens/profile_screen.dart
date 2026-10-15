@@ -171,7 +171,7 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _showHelplineModal(BuildContext context) {
+  void _showHelplineModal(BuildContext context, WidgetRef ref, UserModel? user) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -235,6 +235,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 child: Column(
                   children: [
+                    // Direct Call
                     ListTile(
                       leading: const CircleAvatar(
                         backgroundColor: Color(0xFFDCFCE7),
@@ -245,19 +246,24 @@ class ProfileScreen extends ConsumerWidget {
                       trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                       onTap: () async {
                         final uri = Uri.parse('tel:+919936269347');
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri);
-                        } else {
-                          Clipboard.setData(const ClipboardData(text: '+919936269347'));
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Phone number copied: +91 9936269347')),
-                            );
+                        try {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } catch (_) {
+                          try {
+                            await launchUrl(uri);
+                          } catch (_) {
+                            Clipboard.setData(const ClipboardData(text: '+919936269347'));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Phone number copied: +91 9936269347')),
+                              );
+                            }
                           }
                         }
                       },
                     ),
                     const Divider(height: 1),
+                    // WhatsApp with Custom Message
                     ListTile(
                       leading: const CircleAvatar(
                         backgroundColor: Color(0xFFE0F2FE),
@@ -267,22 +273,38 @@ class ProfileScreen extends ConsumerWidget {
                       subtitle: const Text('Quick chat, product inquiries & UPI receipts', style: TextStyle(fontSize: 11)),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                       onTap: () async {
-                        final uri = Uri.parse(
-                          'https://wa.me/919936269347?text=Hello%20Kanhaiya%20General%20Store%2C%20I%20have%20an%20inquiry%20regarding%20my%20order',
-                        );
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        } else {
-                          Clipboard.setData(const ClipboardData(text: '9936269347'));
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('WhatsApp number copied: 9936269347')),
-                            );
+                        final customerName = user?.displayName ?? 'Valued Customer';
+                        final customerPhone = (user?.phoneNumber != null && user!.phoneNumber!.isNotEmpty)
+                            ? ' (Phone: +91 ${user.phoneNumber})'
+                            : '';
+                        final message =
+                            'Hello Kanhaiya General Store! I am $customerName$customerPhone. I would like to inquire about products and my orders.';
+                        final encodedMsg = Uri.encodeComponent(message);
+
+                        final nativeUri = Uri.parse('whatsapp://send?phone=919936269347&text=$encodedMsg');
+                        final webUri = Uri.parse('https://wa.me/919936269347?text=$encodedMsg');
+
+                        try {
+                          final launched = await launchUrl(nativeUri, mode: LaunchMode.externalApplication);
+                          if (!launched) {
+                            await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                          }
+                        } catch (_) {
+                          try {
+                            await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                          } catch (_) {
+                            Clipboard.setData(const ClipboardData(text: '9936269347'));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('WhatsApp number copied: 9936269347')),
+                              );
+                            }
                           }
                         }
                       },
                     ),
                     const Divider(height: 1),
+                    // Email Support with Custom Message
                     ListTile(
                       leading: const CircleAvatar(
                         backgroundColor: Color(0xFFFEF3C7),
@@ -292,15 +314,33 @@ class ProfileScreen extends ConsumerWidget {
                       subtitle: const Text('kanhaiyaastore@gmail.com', style: TextStyle(fontSize: 11)),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                       onTap: () async {
-                        final uri = Uri.parse('mailto:kanhaiyaastore@gmail.com');
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri);
-                        } else {
-                          Clipboard.setData(const ClipboardData(text: 'kanhaiyaastore@gmail.com'));
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Email copied: kanhaiyaastore@gmail.com')),
-                            );
+                        final customerName = user?.displayName ?? 'Valued Customer';
+                        final customerEmail = user?.email ?? 'Not provided';
+                        final customerPhone = user?.phoneNumber ?? 'Not provided';
+                        final subject = Uri.encodeComponent('Customer Support Request - Kanhaiya General Store');
+                        final body = Uri.encodeComponent(
+                          'Hello Kanhaiya General Store Support Team,\n\n'
+                          'I am reaching out regarding assistance with my account and orders.\n\n'
+                          'Customer Details:\n'
+                          '• Name: $customerName\n'
+                          '• Email: $customerEmail\n'
+                          '• Phone: $customerPhone\n\n'
+                          'Inquiry / Issue:\n',
+                        );
+                        final uri = Uri.parse('mailto:kanhaiyaastore@gmail.com?subject=$subject&body=$body');
+
+                        try {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } catch (_) {
+                          try {
+                            await launchUrl(uri);
+                          } catch (_) {
+                            Clipboard.setData(const ClipboardData(text: 'kanhaiyaastore@gmail.com'));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Email copied: kanhaiyaastore@gmail.com')),
+                              );
+                            }
                           }
                         }
                       },
@@ -310,6 +350,311 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showEditProfileModal(BuildContext context, WidgetRef ref, UserModel? user) {
+    if (user == null) {
+      context.push('/signin');
+      return;
+    }
+
+    final nameController = TextEditingController(text: user.displayName);
+    final phoneController = TextEditingController(text: user.phoneNumber ?? '');
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 14,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.person_outline, color: AppColors.primary, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Edit Profile',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                              ),
+                              Text(
+                                'Update your name & contact phone number',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name *',
+                        prefixIcon: Icon(Icons.badge_outlined, size: 20),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().length < 2) {
+                          return 'Please enter a valid name (at least 2 characters)';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Mobile Number (10 Digits) *',
+                        prefixText: '+91 ',
+                        prefixIcon: Icon(Icons.phone_android_outlined, size: 20),
+                        border: OutlineInputBorder(),
+                        hintText: '9876543210',
+                      ),
+                      validator: (val) {
+                        final digits = (val ?? '').replaceAll(RegExp(r'\D'), '');
+                        if (digits.isNotEmpty && !RegExp(r'^[6-9]\d{9}$').hasMatch(digits)) {
+                          return 'Enter valid 10-digit Indian mobile number starting with 6-9';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      initialValue: user.email.isNotEmpty ? user.email : 'No email linked',
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Google Account Email',
+                        prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                        border: const OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        helperText: 'Verified via Google authentication',
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                if (!formKey.currentState!.validate()) return;
+                                setModalState(() => isSaving = true);
+                                final cleanPhone = phoneController.text.trim().replaceAll(RegExp(r'\D'), '');
+                                final success = await ref.read(authProvider.notifier).updateProfile(
+                                  displayName: nameController.text.trim(),
+                                  phoneNumber: cleanPhone.isNotEmpty ? cleanPhone : null,
+                                );
+                                if (ctx.mounted) {
+                                  Navigator.pop(ctx);
+                                }
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(success ? 'Profile updated successfully!' : 'Failed to update profile'),
+                                      backgroundColor: success ? AppColors.primary : AppColors.error,
+                                    ),
+                                  );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('Save Profile Changes', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showSettingsModal(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.settings_outlined, color: AppColors.primary, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'App Settings & Preferences',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              'Notifications, local cache & store legal terms',
+                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 0,
+                    color: const Color(0xFFF8FAFC),
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          title: const Text('Order & Pickup Alerts', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          subtitle: const Text('Receive notifications for order preparation and pickup status', style: TextStyle(fontSize: 11)),
+                          value: true,
+                          activeThumbColor: AppColors.primary,
+                          activeTrackColor: AppColors.primaryContainer,
+                          onChanged: (val) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(val ? 'Order notifications enabled' : 'Order notifications disabled'),
+                                duration: const Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.cleaning_services_outlined, color: AppColors.primary, size: 20),
+                          title: const Text('Clear App Cache', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          subtitle: const Text('Free up local storage and reset cached catalog', style: TextStyle(fontSize: 11)),
+                          onTap: () {
+                            PaintingBinding.instance.imageCache.clear();
+                            PaintingBinding.instance.imageCache.clearLiveImages();
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Image cache cleared successfully!'),
+                                backgroundColor: AppColors.primary,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary, size: 20),
+                          title: const Text('Privacy Policy', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          subtitle: const Text('Read how we safeguard customer data and privacy', style: TextStyle(fontSize: 11)),
+                          trailing: const Icon(Icons.open_in_new, size: 14),
+                          onTap: () async {
+                            final uri = Uri.parse('https://kanhaiya-store-backend.onrender.com/privacy.html');
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                          title: const Text('About Kanhaiya General Store', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          subtitle: const Text('Fatehpur Roshnai, Kanpur Dehat • App v1.0.0', style: TextStyle(fontSize: 11)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -392,10 +737,16 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Account')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.lg),
-        child: Column(
-          children: [
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () async {
+          await ref.read(authProvider.notifier).refreshProfile();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(AppDimensions.lg),
+          child: Column(
+            children: [
             // User Header Card
             Card(
               child: Padding(
@@ -406,7 +757,7 @@ class ProfileScreen extends ConsumerWidget {
                       radius: 28,
                       backgroundColor: AppColors.primary,
                       child: Text(
-                        user != null ? user.displayName[0].toUpperCase() : 'G',
+                        user != null && user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'G',
                         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
                       ),
                     ),
@@ -423,6 +774,13 @@ class ProfileScreen extends ConsumerWidget {
                             user?.email ?? 'Sign in for in-store order pickup',
                             style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                           ),
+                          if (user?.phoneNumber != null && user!.phoneNumber!.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              '+91 ${user.phoneNumber}',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                            ),
+                          ],
                           if (user != null) ...[
                             const SizedBox(height: 4),
                             Container(
@@ -443,6 +801,13 @@ class ProfileScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    if (user != null) ...[
+                      IconButton(
+                        tooltip: 'Edit Profile',
+                        onPressed: () => _showEditProfileModal(context, ref, user),
+                        icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -478,6 +843,21 @@ class ProfileScreen extends ConsumerWidget {
             Card(
               child: Column(
                 children: [
+                  if (user != null) ...[
+                    ListTile(
+                      leading: const Icon(Icons.person_outline, color: AppColors.primary),
+                      title: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      subtitle: Text(
+                        user.phoneNumber != null && user.phoneNumber!.isNotEmpty
+                            ? '+91 ${user.phoneNumber} • Update details'
+                            : 'Add mobile number & update name',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 12),
+                      onTap: () => _showEditProfileModal(context, ref, user),
+                    ),
+                    const Divider(height: 1),
+                  ],
                   ListTile(
                     leading: const Icon(Icons.storefront_outlined, color: AppColors.primary),
                     title: const Text('Store Location & Counter', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
@@ -491,7 +871,7 @@ class ProfileScreen extends ConsumerWidget {
                     title: const Text('Store Helpline & Support', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                     subtitle: const Text('+91 9936269347 • kanhaiyaastore@gmail.com', style: TextStyle(fontSize: 11)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 12),
-                    onTap: () => _showHelplineModal(context),
+                    onTap: () => _showHelplineModal(context, ref, user),
                   ),
                   const Divider(height: 1),
                   ListTile(
@@ -499,6 +879,14 @@ class ProfileScreen extends ConsumerWidget {
                     title: const Text('My Invoices', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 12),
                     onTap: () => _onMyInvoicesTap(context, authState.isAuthenticated),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.settings_outlined, color: AppColors.primary),
+                    title: const Text('Settings & Preferences', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    subtitle: const Text('Notifications, clear cache & privacy policy', style: TextStyle(fontSize: 11)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 12),
+                    onTap: () => _showSettingsModal(context, ref),
                   ),
                 ],
               ),
@@ -538,6 +926,8 @@ class ProfileScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
+}
+

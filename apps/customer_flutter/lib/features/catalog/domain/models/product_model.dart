@@ -122,8 +122,21 @@ class ProductModel {
       primaryImg = foundPrimary.url;
     }
 
+    final rawId = (json['id'] ?? json['_id'] ?? '').toString();
+    const legacyMap = {
+      'prod-1': '65f1a0000000000000000001',
+      'prod-2': '65f1a0000000000000000002',
+      'prod-3': '65f1a0000000000000000003',
+      'prod-4': '65f1a0000000000000000004',
+      'prod-5': '65f1a0000000000000000005',
+      'prod-6': '65f1a0000000000000000006',
+      'prod-7': '65f1a0000000000000000007',
+      'prod-8': '65f1a0000000000000000008',
+    };
+    final resolvedId = legacyMap[rawId] ?? rawId;
+
     return ProductModel(
-      id: (json['id'] ?? json['_id'] ?? '').toString(),
+      id: resolvedId,
       name: json['name'] as String? ?? '',
       slug: json['slug'] as String? ?? '',
       categoryId: (json['categoryId'] is Map

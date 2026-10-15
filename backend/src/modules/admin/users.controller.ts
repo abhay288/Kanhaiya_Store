@@ -94,6 +94,7 @@ export class AdminUsersController {
           photoURL: u.photoURL || '',
           role: u.role,
           isActive: u.isActive,
+          status: u.isActive ? 'ACTIVE' : 'BLOCKED',
           createdAt: u.createdAt,
           lastLoginAt: u.lastLoginAt,
           orderCount: stats.orderCount,
@@ -223,13 +224,13 @@ export class AdminUsersController {
       }
 
       const isRoot = user.email.toLowerCase() === 'kanhaiyaastore@gmail.com';
-      const { displayName, phoneNumber, role, isActive } = req.body;
+      const { displayName, phoneNumber, role, isActive, status } = req.body;
 
       if (isRoot) {
         if (role && role !== 'ADMIN') {
           throw new ForbiddenError('Root administrator role cannot be demoted');
         }
-        if (isActive === false) {
+        if (isActive === false || status === 'BLOCKED') {
           throw new ForbiddenError('Root administrator account cannot be deactivated');
         }
       }
@@ -248,10 +249,15 @@ export class AdminUsersController {
         }
       }
 
+      let activeToSet: boolean | undefined = undefined;
       if (typeof isActive === 'boolean') {
-        if (!isRoot) {
-          user.isActive = isActive;
-        }
+        activeToSet = isActive;
+      } else if (typeof status === 'string') {
+        activeToSet = status === 'ACTIVE';
+      }
+
+      if (activeToSet !== undefined && !isRoot) {
+        user.isActive = activeToSet;
       }
 
       await user.save();
@@ -261,6 +267,8 @@ export class AdminUsersController {
         {
           ...user.toObject(),
           id: user._id.toString(),
+          isActive: user.isActive,
+          status: user.isActive ? 'ACTIVE' : 'BLOCKED',
           isRootAdmin: isRoot,
         },
         'User updated directly in MongoDB'

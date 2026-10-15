@@ -18,23 +18,38 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onOpenAdmin }) => {
   const [isPhoneLoading, setIsPhoneLoading] = useState(false);
 
   useEffect(() => {
-    // Check if active session exists
-    if (apiClient.getToken()) {
-      apiClient.getMe()
-        .then((res) => {
-          if (res.data?.user) {
-            setUser(res.data.user);
-          }
-        })
-        .catch(() => {
-          apiClient.setToken(null);
-        });
-    }
+    const syncProfile = () => {
+      if (apiClient.getToken()) {
+        apiClient.getMe()
+          .then((res) => {
+            if (res.data?.user) {
+              setUser(res.data.user);
+            }
+          })
+          .catch(() => {
+            // Keep current session
+          });
+      }
+    };
+
+    // Initial check
+    syncProfile();
+
+    // Real-time synchronization: poll profile every 10 seconds
+    const interval = setInterval(syncProfile, 10000);
+    window.addEventListener('kgs_profile_updated', syncProfile);
+    window.addEventListener('kgs_user_updated', syncProfile);
 
     // Check backend health
     apiClient.healthCheck()
       .then(() => setHealthStatus('Online'))
       .catch(() => setHealthStatus('Operational'));
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('kgs_profile_updated', syncProfile);
+      window.removeEventListener('kgs_user_updated', syncProfile);
+    };
   }, []);
 
   const handlePhoneLogin = async (e: React.FormEvent) => {

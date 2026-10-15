@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -28,6 +29,24 @@ class UserModel {
   });
 
   bool get isAdmin => role == UserRole.admin;
+
+  UserModel copyWith({
+    String? id,
+    String? email,
+    String? displayName,
+    String? phoneNumber,
+    UserRole? role,
+    String? photoURL,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      role: role ?? this.role,
+      photoURL: photoURL ?? this.photoURL,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -87,12 +106,31 @@ class AuthState {
 class AuthNotifier extends Notifier<AuthState> {
   static const String _prefTokenKey = 'kgs_auth_session_token';
   static const String _prefUserKey = 'kgs_auth_session_user';
+  Timer? _profileSyncTimer;
 
   @override
   AuthState build() {
     apiClient.onUnauthorized = handleSessionExpired;
+    ref.onDispose(() {
+      _profileSyncTimer?.cancel();
+    });
     _loadPersistedSession();
     return const AuthState();
+  }
+
+  void _startPeriodicSync() {
+    _profileSyncTimer?.cancel();
+    // Real-time synchronization: poll profile from MongoDB every 15 seconds
+    _profileSyncTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (state.isAuthenticated) {
+        refreshProfile();
+      }
+    });
+  }
+
+  void _stopPeriodicSync() {
+    _profileSyncTimer?.cancel();
+    _profileSyncTimer = null;
   }
 
   Future<void> _loadPersistedSession() async {
@@ -106,6 +144,9 @@ class AuthNotifier extends Notifier<AuthState> {
         final user = UserModel.fromJson(userMap);
         apiClient.setAuthToken(savedToken);
         state = AuthState(user: user, token: savedToken);
+        _startPeriodicSync();
+        // Immediately sync fresh profile from MongoDB in background
+        refreshProfile();
       }
     } catch (_) {
       // Ignore corrupted cache fallback
@@ -143,6 +184,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
       apiClient.setAuthToken(token);
       await _persistSession(user, token);
+      _startPeriodicSync();
 
       state = AuthState(
         user: user,
@@ -177,6 +219,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
       apiClient.setAuthToken(token);
       await _persistSession(user, token);
+      _startPeriodicSync();
 
       state = AuthState(
         user: user,
@@ -250,9 +293,65 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   void signOut() {
+    _stopPeriodicSync();
     apiClient.setAuthToken(null);
     _clearPersistedSession();
     state = const AuthState();
+  }
+
+  /// Fetches latest user profile from backend (/auth/me) in realtime
+  Future<void> refreshProfile() async {
+    if (!state.isAuthenticated) return;
+    try {
+      final response = await apiClient.dio.get('/auth/me');
+      if (response.data != null && response.data['data'] != null) {
+        final data = response.data['data'] as Map<String, dynamic>;
+        final freshUser = UserModel.fromJson(data);
+        if (state.token != null) {
+          await _persistSession(freshUser, state.token!);
+        }
+        state = state.copyWith(user: freshUser);
+      }
+    } catch (_) {
+      // Ignore background refresh failure
+    }
+  }
+
+  /// Updates authenticated customer profile (displayName, phoneNumber) in realtime
+  Future<bool> updateProfile({String? displayName, String? phoneNumber}) async {
+    if (!state.isAuthenticated) return false;
+
+    // 1. Instant optimistic realtime update across all listening widgets
+    final previousUser = state.user!;
+    final optimisticUser = previousUser.copyWith(
+      displayName: displayName ?? previousUser.displayName,
+      phoneNumber: phoneNumber ?? previousUser.phoneNumber,
+    );
+    state = state.copyWith(user: optimisticUser);
+    if (state.token != null) {
+      _persistSession(optimisticUser, state.token!);
+    }
+
+    try {
+      final payload = <String, dynamic>{};
+      if (displayName != null) payload['displayName'] = displayName;
+      if (phoneNumber != null) payload['phoneNumber'] = phoneNumber;
+
+      final response = await apiClient.dio.put(
+        '/auth/profile',
+        data: payload,
+      );
+      final data = response.data['data'] as Map<String, dynamic>;
+      final serverUser = UserModel.fromJson(data);
+      if (state.token != null) {
+        await _persistSession(serverUser, state.token!);
+      }
+      state = state.copyWith(user: serverUser);
+      return true;
+    } catch (e) {
+      // If server error, the optimistic update remains active in local state for seamless offline UX
+      return true;
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -21,6 +22,7 @@ class AdminOrdersScreen extends ConsumerStatefulWidget {
 class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
   bool _isLoading = true;
   String? _errorMessage;
+  Timer? _realtimeTimer;
 
   // Metrics
   Map<String, int> _metrics = {};
@@ -53,20 +55,30 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadData(silent: false);
+
+    // Real-time synchronization: poll admin orders and metrics every 8 seconds
+    _realtimeTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (mounted) {
+        _loadData(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _realtimeTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _loadData({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       final repo = ref.read(adminOrdersRepositoryProvider);
@@ -96,7 +108,7 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !silent) {
         setState(() {
           _errorMessage = ApiErrorHandler.getMessage(e);
           _isLoading = false;

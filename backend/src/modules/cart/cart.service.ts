@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Product } from '../../models/product.model';
 import { Cart } from '../../models/cart.model';
+import { LEGACY_MOCK_PRODUCT_MAP } from '../orders/order.service';
 
 export interface CartItemInput {
   productId: string;
@@ -34,8 +35,9 @@ export class CartService {
     // 1. Group & deduplicate items by productId
     const grouped = new Map<string, { quantity: number; variantName?: string }>();
     for (const item of items) {
-      if (!mongoose.Types.ObjectId.isValid(item.productId)) continue;
-      const key = item.productId;
+      const resolvedId = LEGACY_MOCK_PRODUCT_MAP[item.productId] || item.productId;
+      if (!mongoose.Types.ObjectId.isValid(resolvedId)) continue;
+      const key = resolvedId;
       const current = grouped.get(key) || { quantity: 0, variantName: item.variantName };
       current.quantity += item.quantity;
       grouped.set(key, current);

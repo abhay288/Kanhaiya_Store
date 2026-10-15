@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -18,6 +19,7 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
   String? _errorMessage;
+  Timer? _realtimeTimer;
 
   List<AdminUserModel> _users = [];
   int _currentPage = 1;
@@ -30,20 +32,30 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchUsers();
+    _fetchUsers(silent: false);
+
+    // Real-time synchronization: poll MongoDB customers every 10 seconds
+    _realtimeTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) {
+        _fetchUsers(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _realtimeTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchUsers() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _fetchUsers({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       final repo = ref.read(adminUsersRepositoryProvider);
@@ -65,7 +77,7 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !silent) {
         setState(() {
           _errorMessage = ApiErrorHandler.getMessage(e);
           _isLoading = false;

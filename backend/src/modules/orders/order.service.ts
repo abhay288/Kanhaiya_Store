@@ -97,6 +97,17 @@ export interface AdminUpdateOrderInput {
   notes?: string;
 }
 
+export const LEGACY_MOCK_PRODUCT_MAP: Record<string, string> = {
+  'prod-1': '65f1a0000000000000000001',
+  'prod-2': '65f1a0000000000000000002',
+  'prod-3': '65f1a0000000000000000003',
+  'prod-4': '65f1a0000000000000000004',
+  'prod-5': '65f1a0000000000000000005',
+  'prod-6': '65f1a0000000000000000006',
+  'prod-7': '65f1a0000000000000000007',
+  'prod-8': '65f1a0000000000000000008',
+};
+
 export class OrderService {
   /**
    * Safely dispatches notifications without blocking if database connection is offline or in mock unit tests
@@ -238,17 +249,19 @@ export class OrderService {
     let subtotal = 0;
     const inventoryDecrements: Array<{ product: any; quantity: number; previousStock: number }> = [];
 
+
     // Deduplicate quantities by productId
     const requestedItemsMap = new Map<string, number>();
     for (const item of input.items) {
-      if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+      const resolvedProdId = LEGACY_MOCK_PRODUCT_MAP[item.productId] || item.productId;
+      if (!mongoose.Types.ObjectId.isValid(resolvedProdId)) {
         throw new BadRequestError(`Invalid product ID format: ${item.productId}`);
       }
       const qty = Math.floor(Number(item.quantity));
       if (!qty || qty <= 0) {
         throw new BadRequestError(`Quantity must be a positive integer for product ${item.productId}.`);
       }
-      requestedItemsMap.set(item.productId, (requestedItemsMap.get(item.productId) || 0) + qty);
+      requestedItemsMap.set(resolvedProdId, (requestedItemsMap.get(resolvedProdId) || 0) + qty);
     }
 
     for (const [prodId, reqQty] of requestedItemsMap.entries()) {
@@ -1004,11 +1017,12 @@ export class OrderService {
     let subtotal = 0;
 
     for (const item of input.items) {
-      if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+      const resolvedProdId = LEGACY_MOCK_PRODUCT_MAP[item.productId] || item.productId;
+      if (!mongoose.Types.ObjectId.isValid(resolvedProdId)) {
         throw new BadRequestError(`Invalid product ID format: ${item.productId}`);
       }
       const qty = Math.max(1, Math.floor(Number(item.quantity) || 1));
-      const prod = await Product.findById(item.productId);
+      const prod = await Product.findById(resolvedProdId);
       if (!prod) {
         throw new BadRequestError(`Product ${item.productId} not found in catalog.`);
       }

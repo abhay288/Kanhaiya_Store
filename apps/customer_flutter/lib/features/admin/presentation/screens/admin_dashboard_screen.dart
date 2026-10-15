@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,18 +32,34 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   AnalyticsOverviewModel? _metrics;
   bool _isLoadingMetrics = true;
   String? _metricsError;
+  Timer? _metricsTimer;
 
   @override
   void initState() {
     super.initState();
-    _fetchLiveMetrics();
+    _fetchLiveMetrics(silent: false);
+
+    // Real-time synchronization: poll store metrics every 10 seconds
+    _metricsTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) {
+        _fetchLiveMetrics(silent: true);
+      }
+    });
   }
 
-  Future<void> _fetchLiveMetrics() async {
-    setState(() {
-      _isLoadingMetrics = true;
-      _metricsError = null;
-    });
+  @override
+  void dispose() {
+    _metricsTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchLiveMetrics({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoadingMetrics = true;
+        _metricsError = null;
+      });
+    }
     try {
       final repo = ref.read(adminAnalyticsRepositoryProvider);
       final data = await repo.getOverview('today');
@@ -53,7 +70,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !silent) {
         setState(() {
           _metricsError = ApiErrorHandler.getMessage(e);
           _isLoadingMetrics = false;

@@ -53,14 +53,27 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
 
   // Load orders and admin notifications on mount with real-time polling
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(false);
     fetchAdminNotifications();
 
+    // Real-time synchronization: poll incoming orders and alerts every 8 seconds
     const interval = setInterval(() => {
       fetchAdminNotifications();
-    }, 20000);
+      fetchOrders(true);
+    }, 8000);
 
-    return () => clearInterval(interval);
+    const handleExternalOrderChange = () => {
+      fetchOrders(true);
+      fetchAdminNotifications();
+    };
+    window.addEventListener('kgs_order_placed', handleExternalOrderChange);
+    window.addEventListener('kgs_order_updated', handleExternalOrderChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('kgs_order_placed', handleExternalOrderChange);
+      window.removeEventListener('kgs_order_updated', handleExternalOrderChange);
+    };
   }, []);
 
   const fetchAdminNotifications = async () => {
@@ -76,9 +89,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
     }
   };
 
-  const fetchOrders = async () => {
-    setLoadingOrders(true);
-    setActionMsg(null);
+  const fetchOrders = async (silent = false) => {
+    if (!silent) {
+      setLoadingOrders(true);
+      setActionMsg(null);
+    }
     try {
       const res = await apiClient.getAdminOrders({ limit: 50 });
       if (res.data?.items) {
@@ -87,13 +102,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
         setOrders([]);
       }
     } catch (err: unknown) {
-      const e = err as { message?: string };
-      setActionMsg({
-        type: 'error',
-        text: `Failed to load orders: ${e?.message || 'Check connection'}`
-      });
+      if (!silent) {
+        const e = err as { message?: string };
+        setActionMsg({
+          type: 'error',
+          text: `Failed to load orders: ${e?.message || 'Check connection'}`
+        });
+      }
     } finally {
-      setLoadingOrders(false);
+      if (!silent) {
+        setLoadingOrders(false);
+      }
     }
   };
 
@@ -720,7 +739,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
               <span>+ New Order</span>
             </button>
             <button
-              onClick={fetchOrders}
+              onClick={() => fetchOrders(false)}
               disabled={loadingOrders}
               style={{
                 padding: '8px 12px',

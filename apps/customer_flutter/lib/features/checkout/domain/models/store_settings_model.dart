@@ -39,7 +39,9 @@ class StoreSettingsModel {
       phone: json['phone'] ?? '+919876543210',
       whatsappNumber: json['whatsappNumber'] ?? '+919876543210',
       upiId: json['upiId'],
-      storeAddress: json['storeAddress'] ?? 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh',
+      storeAddress: (json['storeAddress'] != null && json['storeAddress'].toString().contains('Kanpur D.'))
+          ? 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh'
+          : (json['storeAddress'] ?? 'Fatehpur Roshnai, Ground Floor, Sarvankhera, Kanpur Dehat, Uttar Pradesh'),
       pickupInstructions: json['pickupInstructions'] ??
           'Orders are packed and kept ready at the store counter. Please share your Order Number when collecting.',
       isDeliveryEnabled: json['isDeliveryEnabled'] ?? false,

@@ -23,6 +23,6 @@ class EnvConfig {
   // Development Flags
   static const bool useMockRepository = bool.fromEnvironment(
     'USE_MOCK_REPO',
-    defaultValue: true,
+    defaultValue: false,
   );
 }
