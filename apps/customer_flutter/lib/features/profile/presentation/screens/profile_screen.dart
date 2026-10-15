@@ -157,7 +157,10 @@ class ProfileScreen extends ConsumerWidget {
                         _showAddressShareDialog(context, addressText);
                       },
                       icon: const Icon(Icons.copy, size: 16),
-                      label: const Text('Copy Address'),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Copy Address'),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -186,7 +189,10 @@ class ProfileScreen extends ConsumerWidget {
                         }
                       },
                       icon: const Icon(Icons.directions, size: 16),
-                      label: const Text('Open in Maps'),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Open in Maps'),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,

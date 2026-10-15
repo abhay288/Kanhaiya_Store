@@ -321,13 +321,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 context.push('/checkout');
               }
             },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Proceed to Checkout'),
-                const SizedBox(width: 8),
-                Text('•  ${CurrencyFormatter.format(totalToPay)}'),
-              ],
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Proceed to Checkout'),
+                  const SizedBox(width: 8),
+                  Text('•  ${CurrencyFormatter.format(totalToPay)}'),
+                ],
+              ),
             ),
           ),
         ),

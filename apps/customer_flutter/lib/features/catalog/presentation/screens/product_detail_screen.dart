@@ -148,11 +148,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   const SizedBox(height: AppDimensions.md),
                 ],
 
-                // Category pill, Brand, & Pack Size
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Category pill, Brand, & Pack Size (Responsive Wrap)
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 6,
                   children: [
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         if (product.brand.isNotEmpty) ...[
                           Text(
@@ -218,46 +222,52 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            CurrencyFormatter.format(product.sellingPrice),
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          if (product.mrp > product.sellingPrice) ...[
-                            const SizedBox(width: 8),
-                            Text(
-                              CurrencyFormatter.format(product.mrp),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppColors.textTertiary,
-                                decoration: TextDecoration.lineThrough,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.accentContainer,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '${product.discountPercentage}% OFF',
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                CurrencyFormatter.format(product.sellingPrice),
                                 style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.accent,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primary,
                                 ),
                               ),
-                            ),
-                          ],
-                        ],
+                              if (product.mrp > product.sellingPrice) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  CurrencyFormatter.format(product.mrp),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.textTertiary,
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentContainer,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${product.discountPercentage}% OFF',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.accent,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -327,21 +337,29 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: AppDimensions.md),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.65,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                          ),
-                          itemCount: relatedList.length,
-                          itemBuilder: (context, index) {
-                            final rel = relatedList[index];
-                            return ProductCard(
-                              product: rel,
-                              onTap: () => context.push('/product-detail/${rel.id}'),
+                        Builder(
+                          builder: (context) {
+                            final screenWidth = MediaQuery.of(context).size.width;
+                            final crossAxisCount = screenWidth >= 600 ? 3 : 2;
+                            final childAspectRatio = screenWidth < 360 ? 0.60 : 0.64;
+
+                            return GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                childAspectRatio: childAspectRatio,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                              ),
+                              itemCount: relatedList.length,
+                              itemBuilder: (context, index) {
+                                final rel = relatedList[index];
+                                return ProductCard(
+                                  product: rel,
+                                  onTap: () => context.push('/product-detail/${rel.id}'),
+                                );
+                              },
                             );
                           },
                         ),
@@ -374,14 +392,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       }
                     : null,
                 icon: Icon(inCartCount > 0 ? Icons.check : Icons.shopping_bag_outlined),
-                label: Text(
-                  !product.inStock
-                      ? 'Out of Stock'
-                      : isMaxStockReached
-                          ? 'Max Stock Reached ($inCartCount)'
-                          : inCartCount > 0
-                              ? 'In Your Cart ($inCartCount) — Add Another'
-                              : 'Add to Cart • ${CurrencyFormatter.format(product.sellingPrice)}',
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    !product.inStock
+                        ? 'Out of Stock'
+                        : isMaxStockReached
+                            ? 'Max Stock Reached ($inCartCount)'
+                            : inCartCount > 0
+                                ? 'In Your Cart ($inCartCount) — Add Another'
+                                : 'Add to Cart • ${CurrencyFormatter.format(product.sellingPrice)}',
+                  ),
                 ),
               ),
             ),

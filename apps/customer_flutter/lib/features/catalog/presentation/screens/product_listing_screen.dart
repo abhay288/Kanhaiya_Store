@@ -255,13 +255,17 @@ class _ProductListingScreenState extends ConsumerState<ProductListingScreen> {
                   );
                 }
 
+                final screenWidth = MediaQuery.of(context).size.width;
+                final crossAxisCount = screenWidth >= 600 ? 3 : 2;
+                final childAspectRatio = screenWidth < 360 ? 0.60 : 0.64;
+
                 return GridView.builder(
                   padding: const EdgeInsets.all(AppDimensions.lg),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.65,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    childAspectRatio: childAspectRatio,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
                   ),
                   itemCount: products.length,
                   itemBuilder: (context, index) {

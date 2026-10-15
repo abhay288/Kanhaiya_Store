@@ -171,9 +171,13 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       Icon(Icons.search, color: AppColors.textTertiary, size: 20),
                       SizedBox(width: 10),
-                      Text(
-                        'Search atta, dal, spices, milk products & breads...',
-                        style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                      Expanded(
+                        child: Text(
+                          'Search atta, dal, spices, milk products & breads...',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+                        ),
                       ),
                     ],
                   ),
@@ -353,19 +357,18 @@ class HomeScreen extends ConsumerWidget {
     VoidCallback? onViewAll,
   }) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 18, color: iconColor),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-          ],
+        if (icon != null) ...[
+          Icon(icon, size: 18, color: iconColor),
+          const SizedBox(width: 6),
+        ],
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
         ),
         if (onViewAll != null)
           TextButton(
@@ -377,14 +380,19 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildProductGrid(BuildContext context, List<ProductModel> products) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = screenWidth >= 600 ? 3 : 2;
+    // Dynamic aspect ratio to prevent button clipping on compact phones
+    final childAspectRatio = screenWidth < 360 ? 0.60 : 0.64;
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.65,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: childAspectRatio,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
       itemCount: products.length,
       itemBuilder: (context, index) {

@@ -931,7 +931,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
-                : Text('Place Order • ${CurrencyFormatter.format(totalPayable)}'),
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('Place Order • ${CurrencyFormatter.format(totalPayable)}'),
+                  ),
           ),
         ),
       ),

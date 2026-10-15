@@ -118,42 +118,46 @@ class ProductCard extends ConsumerWidget {
               ),
               const Spacer(),
 
-              // Price Row
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    CurrencyFormatter.format(product.sellingPrice),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  if (product.mrp > product.sellingPrice) ...[
-                    const SizedBox(width: 6),
+              // Price Row (Fitted to prevent overflow on narrow screens)
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
                     Text(
-                      CurrencyFormatter.format(product.mrp),
+                      CurrencyFormatter.format(product.sellingPrice),
                       style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textTertiary,
-                        decoration: TextDecoration.lineThrough,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
                         fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${(((product.mrp - product.sellingPrice) / product.mrp) * 100).round()}% OFF',
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.accent,
+                    if (product.mrp > product.sellingPrice) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        CurrencyFormatter.format(product.mrp),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textTertiary,
+                          decoration: TextDecoration.lineThrough,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${(((product.mrp - product.sellingPrice) / product.mrp) * 100).round()}% OFF',
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
               const SizedBox(height: AppDimensions.sm),
 
@@ -167,9 +171,12 @@ class ProductCard extends ConsumerWidget {
                           ref.read(cartProvider.notifier).addToCart(product);
                         },
                         icon: const Icon(Icons.check, size: 14),
-                        label: Text('Added ($inCartCount)'),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Added ($inCartCount)'),
+                        ),
                         style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.zero,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                         ),
                       )
@@ -180,9 +187,12 @@ class ProductCard extends ConsumerWidget {
                               }
                             : null,
                         icon: const Icon(Icons.add, size: 14),
-                        label: const Text('Add to Cart'),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Add to Cart'),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.zero,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                         ),
                       ),

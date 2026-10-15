@@ -187,10 +187,17 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
           // 3. Main Center Stage Content
           SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(flex: 3),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Spacer(flex: 3),
 
                 // Center Animated Logo + Dynamic Halo
                 AnimatedBuilder(
@@ -403,6 +410,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
               ],
             ),
           ),
+        ),
+      );
+    },
+  ),
+),
         ],
       ),
     );
