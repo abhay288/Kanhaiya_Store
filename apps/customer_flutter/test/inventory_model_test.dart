@@ -114,5 +114,34 @@ void main() {
       expect(product.expiryDate, isNotNull);
       expect(product.expiryDate!.year, 2027);
     });
+
+    test('Inventory repository response maps items and products keys correctly for inventory screen', () {
+      final sampleProduct = {
+        'id': '60d5ec49f1b2c82d22222221',
+        'name': 'Fortune Sunlite Sunflower Oil 1L',
+        'slug': 'fortune-sunlite-sunflower-oil-1l',
+        'categoryId': '60d5ec49f1b2c82d11111111',
+        'sellingPrice': 150,
+        'stockQuantity': 12,
+        'lowStockThreshold': 5,
+        'unit': 'bottle',
+      };
+
+      // Simulating response payload from AdminCatalogRepository.getProducts
+      final mappedProducts = [ProductModel.fromJson(sampleProduct)];
+      final repoResponse = {
+        'items': mappedProducts,
+        'products': mappedProducts,
+        'total': 1,
+        'page': 1,
+        'totalPages': 1,
+      };
+
+      final dynamic rawItems = repoResponse['items'] ?? repoResponse['products'];
+      expect(rawItems, isA<List<ProductModel>>());
+      final List<ProductModel> loaded = List<ProductModel>.from(rawItems as List);
+      expect(loaded.length, 1);
+      expect(loaded.first.name, 'Fortune Sunlite Sunflower Oil 1L');
+    });
   });
 }

@@ -21,7 +21,7 @@ export interface ListProductsFilter {
   isPublished?: boolean;
   minPrice?: number;
   maxPrice?: number;
-  sort?: 'price_asc' | 'price_desc' | 'newest' | 'name_asc' | 'stock_asc';
+  sort?: 'price_asc' | 'price_desc' | 'newest' | 'name_asc' | 'stock_asc' | 'stock_desc';
   isAdmin?: boolean;
 }
 
@@ -68,9 +68,11 @@ export class ProductService {
     if (filter.isBestseller !== undefined) query.isBestseller = filter.isBestseller;
 
     // Stock availability filter
-    if (filter.inStock) {
+    if (filter.inStock === true) {
       query.stockQuantity = { $gt: 0 };
       query.isAvailable = true;
+    } else if (filter.inStock === false) {
+      query.$or = [{ stockQuantity: { $lte: 0 } }, { isAvailable: false }];
     }
 
     // Price range
@@ -107,6 +109,9 @@ export class ProductService {
         break;
       case 'stock_asc':
         sortOptions = { stockQuantity: 1 };
+        break;
+      case 'stock_desc':
+        sortOptions = { stockQuantity: -1 };
         break;
       case 'newest':
       default:

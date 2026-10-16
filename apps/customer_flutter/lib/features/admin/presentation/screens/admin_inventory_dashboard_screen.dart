@@ -104,7 +104,10 @@ class _AdminInventoryDashboardScreenState extends State<AdminInventoryDashboardS
   }
 
   Future<void> _loadProducts() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
       String? inStockFilter;
       if (_selectedStatus == 'in_stock') inStockFilter = 'true';
@@ -125,8 +128,15 @@ class _AdminInventoryDashboardScreenState extends State<AdminInventoryDashboardS
                     : 'newest',
       );
 
-      final List rawList = res['products'] as List;
-      var loaded = rawList.map((j) => ProductModel.fromJson(j as Map<String, dynamic>)).toList();
+      final dynamic rawItems = res['items'] ?? res['products'] ?? [];
+      List<ProductModel> loaded = [];
+      if (rawItems is List<ProductModel>) {
+        loaded = List<ProductModel>.from(rawItems);
+      } else if (rawItems is List) {
+        loaded = rawItems
+            .map((j) => j is ProductModel ? j : ProductModel.fromJson(j as Map<String, dynamic>))
+            .toList();
+      }
 
       // In-memory filter for low-stock if selected
       if (_selectedStatus == 'low_stock') {
@@ -139,7 +149,9 @@ class _AdminInventoryDashboardScreenState extends State<AdminInventoryDashboardS
       if (mounted) {
         setState(() {
           _products = loaded;
-          _productsTotalCount = res['total'] as int? ?? loaded.length;
+          _productsTotalCount = (_selectedStatus == 'low_stock')
+              ? loaded.length
+              : (res['total'] as int? ?? loaded.length);
           _productsTotalPages = res['totalPages'] as int? ?? 1;
           _isLoading = false;
         });
@@ -225,7 +237,7 @@ class _AdminInventoryDashboardScreenState extends State<AdminInventoryDashboardS
       appBar: AppBar(
         title: const Text(
           'Inventory & Stock Control',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Colors.white),
         ),
         backgroundColor: AppColors.primary, // Deep Forest Green
         foregroundColor: Colors.white,
@@ -354,6 +366,30 @@ class _AdminInventoryDashboardScreenState extends State<AdminInventoryDashboardS
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 40, color: AppColors.error),
+                    const SizedBox(height: 10),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: _loadProducts,
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('Retry Loading Products'),
+                    ),
+                  ],
+                ),
+              ),
             )
           else if (_products.isEmpty)
             _buildEmptyState('No products found matching the selected inventory criteria.')

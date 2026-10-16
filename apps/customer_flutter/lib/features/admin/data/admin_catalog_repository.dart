@@ -96,12 +96,15 @@ class AdminCatalogRepository {
 
     final response = await _dio.get('/products', queryParameters: params);
     final data = response.data['data'] as Map<String, dynamic>;
-    final List list = data['items'] as List;
-    final products = list.map((item) => ProductModel.fromJson(item as Map<String, dynamic>)).toList();
+    final List list = (data['items'] ?? data['products'] ?? []) as List;
+    final products = list
+        .map((item) => item is ProductModel ? item : ProductModel.fromJson(item as Map<String, dynamic>))
+        .toList();
 
     return {
       'items': products,
-      'total': data['total'] as int? ?? 0,
+      'products': products,
+      'total': data['total'] as int? ?? products.length,
       'page': data['page'] as int? ?? 1,
       'totalPages': data['totalPages'] as int? ?? 1,
     };

@@ -109,7 +109,7 @@ export const listProductsQuerySchema = z.object({
     minPrice: z.coerce.number().min(0).optional(),
     maxPrice: z.coerce.number().min(0).optional(),
     sort: z
-      .enum(['price_asc', 'price_desc', 'newest', 'name_asc', 'stock_asc'])
+      .enum(['price_asc', 'price_desc', 'newest', 'name_asc', 'stock_asc', 'stock_desc'])
       .optional()
       .default('newest'),
   }),
