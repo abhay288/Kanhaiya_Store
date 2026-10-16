@@ -470,13 +470,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   ),
                 ),
 
+              // 1. Today's Store Pulse with small Cards
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 1.4,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+                childAspectRatio: 2.2,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
                 children: [
                   _buildMetricCard(
                     'Orders Today'.tr(lang),
@@ -484,6 +485,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         ? '${_metrics!.ordersToday}'
                         : (_isLoadingMetrics ? '...' : '0'),
                     AppColors.primary,
+                    Icons.shopping_bag_outlined,
                   ),
                   _buildMetricCard(
                     'Awaiting Action'.tr(lang),
@@ -491,6 +493,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         ? '${_metrics!.awaitingConfirmation}'
                         : (_isLoadingMetrics ? '...' : '0'),
                     AppColors.warning,
+                    Icons.pending_actions_outlined,
                   ),
                   _buildMetricCard(
                     'Collected Today'.tr(lang),
@@ -498,6 +501,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         ? CurrencyFormatter.format(_metrics!.verifiedPayments)
                         : (_isLoadingMetrics ? '...' : CurrencyFormatter.format(0)),
                     AppColors.secondary,
+                    Icons.payments_outlined,
                   ),
                   _buildMetricCard(
                     'Low / Out Stock'.tr(lang),
@@ -505,12 +509,254 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         ? '${_metrics!.lowStockCount + _metrics!.outOfStockCount}'
                         : (_isLoadingMetrics ? '...' : '0'),
                     AppColors.error,
+                    Icons.warning_amber_rounded,
                   ),
                 ],
               ),
               const SizedBox(height: AppDimensions.lg),
 
-              // Section 1: Analytics, Reports & Settings
+              // 2. Order Operations Dashboard (Highlighted & Prominent)
+              Text(
+                'Order Operations & Fulfillment'.tr(lang),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF0F5A32),
+                      Color(0xFF16A34A),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF16A34A).withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const AdminOrdersScreen()),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white60, width: 1.5),
+                            ),
+                            child: const Icon(Icons.assignment_turned_in_rounded, color: Colors.white, size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Order Operations Dashboard'.tr(lang),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF59E0B),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'PRIMARY',
+                                        style: TextStyle(
+                                          color: Colors.black87,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Manage fulfillment lifecycle, verify WhatsApp QR payments, collect COD & issue invoices',
+                                  style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.lg),
+
+              // 3. Catalog & Inventory Management Cards (With Add New Item Highlighted)
+              Text(
+                'Catalog & Inventory Management'.tr(lang),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+
+              // Highlighted: Add New Catalog Item Card
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFFFFFBEB),
+                      Color(0xFFFEF3C7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const AdminProductEditScreen()),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFD97706),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.add_shopping_cart_rounded, color: Colors.white, size: 22),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Add New Catalog Item'.tr(lang),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                        color: Color(0xFF78350F),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFD97706),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'FAST ADD',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                const Text(
+                                  'Upload images to Cloudinary, set selling price, pack size & initial inventory',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFF92400E)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF78350F)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionTile(
+                      context,
+                      title: 'Manage Products'.tr(lang),
+                      subtitle: 'CRUD, Cloudinary gallery, pricing & stock',
+                      icon: Icons.inventory_2_outlined,
+                      color: AppColors.primary,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildActionTile(
+                      context,
+                      title: 'Manage Categories'.tr(lang),
+                      subtitle: 'Taxonomy, subcategories & icon imagery',
+                      icon: Icons.category_outlined,
+                      color: AppColors.accent,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AdminCategoriesScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppDimensions.lg),
+
+              // 4. Business Analytics (Updated: Inventory Stock Control replaces Store Settings)
               Text(
                 'Business Analytics'.tr(lang),
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
@@ -572,13 +818,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   Expanded(
                     child: _buildActionTile(
                       context,
-                      title: 'Store Settings'.tr(lang),
-                      subtitle: 'Store profile, checkout alerts & GSTIN',
-                      icon: Icons.tune_outlined,
+                      title: 'Inventory & Stock Control'.tr(lang),
+                      subtitle: 'Real-time stock, movement audits & damaged goods',
+                      icon: Icons.warehouse_outlined,
                       color: Colors.teal.shade700,
                       onTap: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const AdminStoreSettingsScreen()),
+                          MaterialPageRoute(builder: (_) => const AdminInventoryDashboardScreen()),
                         );
                       },
                     ),
@@ -587,7 +833,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               ),
               const SizedBox(height: AppDimensions.lg),
 
-              // Section: Push Notification Broadcast
+              // 5. Broadcast Push Notification Card (Fixed & Polished)
               Text(
                 'Broadcast Push Notifications'.tr(lang),
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
@@ -599,15 +845,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   gradient: const LinearGradient(
                     colors: [
                       Color(0xFF1E3A8A),
-                      AppColors.primary,
+                      Color(0xFF2563EB),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.25),
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.28),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -616,19 +862,20 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    borderRadius: BorderRadius.circular(14),
                     onTap: () => showBroadcastNotificationDialog(context, ref),
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.2),
                               shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white30, width: 1),
                             ),
-                            child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 28),
+                            child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 24),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -642,7 +889,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w800,
-                                        fontSize: 15,
+                                        fontSize: 14,
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -658,163 +905,33 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                           color: Colors.white,
                                           fontSize: 9,
                                           fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 3),
                                 const Text(
-                                  'Send instant store announcements, festival discount offers & urgent notices directly to all customer smartphones.',
+                                  'Send instant store announcements, festival discount offers & urgent notices directly to all customers.',
                                   style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.send_rounded, size: 14, color: Colors.white),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.lg),
-
-              // Section 2: Order Fulfillment & Invoices
-              Text(
-                'Order Fulfillment & Invoices'.tr(lang),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: AppDimensions.sm),
-
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                ),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppColors.primary,
-                    child: Icon(Icons.assignment_outlined, color: Colors.white, size: 22),
-                  ),
-                  title: Text(
-                    'Order Operations Dashboard'.tr(lang),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textPrimary),
-                  ),
-                  subtitle: const Text(
-                    'Manage fulfillment lifecycle, verify WhatsApp QR payments, collect COD & issue invoices',
-                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AdminOrdersScreen()),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: AppDimensions.lg),
-
-              // Section 3: Catalog & Inventory Management
-              Text(
-                'Catalog & Inventory Management'.tr(lang),
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: AppDimensions.sm),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildActionTile(
-                      context,
-                      title: 'Manage Products'.tr(lang),
-                      subtitle: 'CRUD, Cloudinary gallery, pricing & stock',
-                      icon: Icons.inventory_2_outlined,
-                      color: AppColors.primary,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildActionTile(
-                      context,
-                      title: 'Manage Categories'.tr(lang),
-                      subtitle: 'Taxonomy, subcategories & icon imagery',
-                      icon: Icons.category_outlined,
-                      color: AppColors.accent,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const AdminCategoriesScreen()),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-
-              // Inventory & Stock Control Card
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
-                ),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppColors.accent,
-                    child: Icon(Icons.warehouse_outlined, color: Colors.white, size: 20),
-                  ),
-                  title: Text(
-                    'Inventory & Stock Control'.tr(lang),
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
-                  ),
-                  subtitle: const Text(
-                    'Real-time stock levels, movement audits, receipts, damaged goods & low-stock alerts',
-                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.accent),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AdminInventoryDashboardScreen()),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Quick Add Product Card
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.primaryContainer,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-                ),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: AppColors.primary,
-                    child: Icon(Icons.add, color: Colors.white, size: 20),
-                  ),
-                  title: Text(
-                    'Add New Catalog Item'.tr(lang),
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.onPrimaryContainer),
-                  ),
-                  subtitle: const Text(
-                    'Upload images to Cloudinary, set selling price, pack size & stock',
-                    style: TextStyle(fontSize: 11, color: AppColors.primaryDark),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AdminProductEditScreen()),
-                    );
-                  },
                 ),
               ),
               const SizedBox(height: AppDimensions.lg),
@@ -897,23 +1014,60 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildMetricCard(String title, String value, Color color) {
+  Widget _buildMetricCard(String title, String value, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(AppDimensions.md),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
-          Text(title, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
