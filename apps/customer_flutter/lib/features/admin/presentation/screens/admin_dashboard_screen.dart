@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
@@ -20,6 +21,7 @@ import 'admin_customers_screen.dart';
 import 'admin_store_settings_screen.dart';
 import '../../../notifications/presentation/controllers/notification_controller.dart';
 import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../notifications/presentation/widgets/broadcast_notification_dialog.dart';
 import '../../../../core/localization/app_language_provider.dart';
 import '../../../../core/localization/app_strings.dart';
 
@@ -66,10 +68,18 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       final repo = ref.read(adminAnalyticsRepositoryProvider);
       final data = await repo.getOverview('today');
       if (mounted) {
-        setState(() {
-          _metrics = data;
-          _isLoadingMetrics = false;
-        });
+        if (!silent ||
+            _metrics == null ||
+            _metrics?.ordersToday != data.ordersToday ||
+            _metrics?.grossOrderValue != data.grossOrderValue ||
+            _metrics?.awaitingConfirmation != data.awaitingConfirmation ||
+            _metrics?.lowStockCount != data.lowStockCount ||
+            _metrics?.totalOrders != data.totalOrders) {
+          setState(() {
+            _metrics = data;
+            _isLoadingMetrics = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted && !silent) {
@@ -78,6 +88,53 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _isLoadingMetrics = false;
         });
       }
+    }
+  }
+
+  Future<void> _handleAdminLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: AppColors.error),
+            SizedBox(width: 8),
+            Text('Log Out of Admin?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to end your administrator session? You will need to sign in again to access store management.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      ref.read(authProvider.notifier).signOut();
+      if (!mounted) return;
+      context.go('/home');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Logged out of Admin Panel successfully.'),
+          duration: Duration(seconds: 2),
+          backgroundColor: AppColors.primary,
+        ),
+      );
     }
   }
 
@@ -243,6 +300,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             tooltip: 'Refresh metrics',
             onPressed: _fetchLiveMetrics,
           ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            tooltip: 'Log Out of Admin Panel',
+            onPressed: _handleAdminLogout,
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -252,42 +314,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Admin Identity Card
-              Container(
-                padding: const EdgeInsets.all(AppDimensions.md),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.shield, color: AppColors.secondary, size: 28),
-                    const SizedBox(width: AppDimensions.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            authState.user?.displayName ?? 'Admin Operator',
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                          ),
-                          Text(
-                            'Authenticated as: ${authState.user?.email}',
-                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppDimensions.md),
-
-              // Live Customer Order Alert Banner
+              // Live Customer Order Alert Banner (Shows only unread alerts with dismiss button)
               notificationsAsync.when(
                 data: (notifications) {
-                  final alerts = notifications.where((n) => n.type == 'ADMIN_ALERT' || !n.isRead).toList();
+                  // Only show alerts that have NOT yet been read
+                  final alerts = notifications.where((n) => !n.isRead && (n.type == 'ADMIN_ALERT' || n.isOrderRelated)).toList();
                   if (alerts.isEmpty) return const SizedBox.shrink();
                   final latestAlert = alerts.first;
                   return Container(
@@ -343,6 +374,17 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                       color: Color(0xFFB91C1C),
                                     ),
                                   ),
+                                  const SizedBox(width: 6),
+                                  InkWell(
+                                    onTap: () {
+                                      ref.read(notificationsNotifierProvider.notifier).markAsRead(latestAlert.id);
+                                    },
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(2.0),
+                                      child: Icon(Icons.close, size: 16, color: Color(0xFFB91C1C)),
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 4),
@@ -357,6 +399,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                               const SizedBox(height: 8),
                               InkWell(
                                 onTap: () {
+                                  ref.read(notificationsNotifierProvider.notifier).markAsRead(latestAlert.id);
                                   Navigator.of(context).push(
                                     MaterialPageRoute(builder: (_) => const NotificationsScreen()),
                                   );
@@ -544,6 +587,100 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               ),
               const SizedBox(height: AppDimensions.lg),
 
+              // Section: Push Notification Broadcast
+              Text(
+                'Broadcast Push Notifications'.tr(lang),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF1E3A8A),
+                      AppColors.primary,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    onTap: () => showBroadcastNotificationDialog(context, ref),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 28),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Broadcast Push Notification'.tr(lang),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'LIVE',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Send instant store announcements, festival discount offers & urgent notices directly to all customer smartphones.',
+                                  style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.lg),
+
               // Section 2: Order Fulfillment & Invoices
               Text(
                 'Order Fulfillment & Invoices'.tr(lang),
@@ -678,6 +815,31 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       MaterialPageRoute(builder: (_) => const AdminProductEditScreen()),
                     );
                   },
+                ),
+              ),
+              const SizedBox(height: AppDimensions.lg),
+
+              // Bottom Admin Session Controls
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _handleAdminLogout,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error, width: 1.2),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.logout, color: AppColors.error),
+                  label: const Text('Log Out of Admin Panel', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => context.go('/home'),
+                  icon: const Icon(Icons.storefront_outlined, size: 16, color: AppColors.primary),
+                  label: const Text('Switch to Customer Store View', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
                 ),
               ),
               const SizedBox(height: AppDimensions.xl),

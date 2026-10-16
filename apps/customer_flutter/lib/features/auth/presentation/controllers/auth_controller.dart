@@ -245,6 +245,11 @@ class AuthNotifier extends Notifier<AuthState> {
         scopes: ['email', 'profile'],
       );
 
+      // Force account chooser prompt by ensuring previous session is cleared
+      try {
+        await googleSignIn.signOut();
+      } catch (_) {}
+
       final GoogleSignInAccount? account = await googleSignIn.signIn();
       if (account == null) {
         // User cancelled the sign-in dialog
@@ -292,10 +297,18 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  void signOut() {
+  Future<void> signOut() async {
     _stopPeriodicSync();
+    try {
+      final googleSignIn = GoogleSignIn(
+        serverClientId: '359309992004-jrcn6o638tefgln6bkre3bhgfaomcur8.apps.googleusercontent.com',
+        scopes: ['email', 'profile'],
+      );
+      await googleSignIn.signOut();
+      await googleSignIn.disconnect();
+    } catch (_) {}
     apiClient.setAuthToken(null);
-    _clearPersistedSession();
+    await _clearPersistedSession();
     state = const AuthState();
   }
 
@@ -309,6 +322,14 @@ class AuthNotifier extends Notifier<AuthState> {
         final freshUser = UserModel.fromJson(data);
         if (state.token != null) {
           await _persistSession(freshUser, state.token!);
+        }
+        // Avoid emitting new state if user data hasn't changed to prevent unnecessary app-wide widget rebuilds
+        if (state.user?.id == freshUser.id &&
+            state.user?.displayName == freshUser.displayName &&
+            state.user?.email == freshUser.email &&
+            state.user?.phoneNumber == freshUser.phoneNumber &&
+            state.user?.role == freshUser.role) {
+          return;
         }
         state = state.copyWith(user: freshUser);
       }

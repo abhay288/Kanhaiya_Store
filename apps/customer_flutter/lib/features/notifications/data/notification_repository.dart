@@ -36,6 +36,35 @@ class NotificationRepository {
     };
     await _dio.patch('/notifications/read-all', data: payload);
   }
+
+  /// Deletes a specific notification permanently
+  Future<void> deleteNotification(String id) async {
+    await _dio.delete('/notifications/$id');
+  }
+
+  /// Deletes all notifications for current user/admin
+  Future<void> clearAllNotifications({String? phone, bool? admin}) async {
+    final params = <String, dynamic>{
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
+      if (admin == true) 'admin': 'true',
+    };
+    await _dio.delete('/notifications', queryParameters: params);
+  }
+
+  /// Broadcast a push notification/announcement to all customers (Admin only)
+  Future<NotificationItemModel> broadcastNotification({
+    required String title,
+    required String message,
+    String? type,
+  }) async {
+    final response = await _dio.post('/notifications/broadcast', data: {
+      'title': title,
+      'message': message,
+      'type': type ?? 'STORE_ANNOUNCEMENT',
+    });
+    final data = response.data['data'] as Map<String, dynamic>;
+    return NotificationItemModel.fromJson(data);
+  }
 }
 
 final notificationRepository = NotificationRepository();

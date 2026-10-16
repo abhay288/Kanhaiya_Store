@@ -259,4 +259,19 @@ export class OrderController {
       next(err);
     }
   }
+
+  /**
+   * Customer / Admin: Permanently delete order invoice from MongoDB and restore inventory
+   */
+  static async deleteCustomerOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await OrderService.deleteOrderCustomer(
+        req.params.idOrNumber,
+        req.user!
+      );
+      return sendSuccess(res, result, result.message);
+    } catch (err) {
+      next(err);
+    }
+  }
 }

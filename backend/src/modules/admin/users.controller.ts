@@ -37,6 +37,9 @@ export class AdminUsersController {
         ];
       }
 
+      // Filter out test administrator from the users list
+      query.displayName = { $nin: ['Test Administrator', 'test administrator', 'Test Admin'] };
+
       const total = await User.countDocuments(query);
       const users = await User.find(query)
         .sort({ createdAt: -1 })

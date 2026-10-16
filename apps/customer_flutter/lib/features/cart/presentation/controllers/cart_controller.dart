@@ -9,6 +9,7 @@ import '../../../catalog/presentation/controllers/catalog_providers.dart';
 
 class CartNotifier extends Notifier<List<CartItemModel>> {
   String _currentAccountKey = 'guest';
+  List<CartItemModel> _items = [];
 
   String _getCartStorageKey([String? userId]) {
     final key = userId ?? _currentAccountKey;
@@ -23,11 +24,15 @@ class CartNotifier extends Notifier<List<CartItemModel>> {
 
     if (_currentAccountKey != newAccountKey) {
       _currentAccountKey = newAccountKey;
+      _items = [];
       Future.microtask(() => _loadFromStorage());
-    } else {
-      _loadFromStorage();
+      return [];
     }
-    return [];
+
+    if (_items.isEmpty) {
+      Future.microtask(() => _loadFromStorage());
+    }
+    return _items;
   }
 
   Future<void> _loadFromStorage() async {
@@ -37,8 +42,10 @@ class CartNotifier extends Notifier<List<CartItemModel>> {
       final savedJson = prefs.getString(key);
       if (savedJson != null && savedJson.isNotEmpty) {
         final List decoded = jsonDecode(savedJson) as List;
-        state = decoded.map((i) => CartItemModel.fromJson(i as Map<String, dynamic>)).toList();
+        _items = decoded.map((i) => CartItemModel.fromJson(i as Map<String, dynamic>)).toList();
+        state = _items;
       } else {
+        _items = [];
         state = [];
       }
     } catch (_) {
@@ -67,10 +74,12 @@ class CartNotifier extends Notifier<List<CartItemModel>> {
       final cappedQty = newQty > product.stockQuantity ? product.stockQuantity : newQty;
       final updated = List<CartItemModel>.from(state);
       updated[index] = current.copyWith(quantity: cappedQty);
+      _items = updated;
       state = updated;
     } else {
       final cappedQty = qty > product.stockQuantity ? product.stockQuantity : qty;
-      state = [...state, CartItemModel(product: product, quantity: cappedQty)];
+      _items = [...state, CartItemModel(product: product, quantity: cappedQty)];
+      state = _items;
     }
     _persistToStorage();
   }
@@ -86,19 +95,30 @@ class CartNotifier extends Notifier<List<CartItemModel>> {
       final finalQty = newQuantity > maxStock ? maxStock : newQuantity;
       final updated = List<CartItemModel>.from(state);
       updated[index] = updated[index].copyWith(quantity: finalQty);
+      _items = updated;
       state = updated;
       _persistToStorage();
     }
   }
 
   void removeFromCart(String productId) {
-    state = state.where((item) => item.product.id != productId).toList();
+    _items = state.where((item) => item.product.id != productId).toList();
+    state = _items;
     _persistToStorage();
   }
 
-  void clearCart() {
+  Future<void> clearCart() async {
+    _items = [];
     state = [];
-    _persistToStorage();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_getCartStorageKey(), '[]');
+      await prefs.setString('kgs_customer_cart_guest', '[]');
+      await prefs.remove(_getCartStorageKey());
+      await prefs.remove('kgs_customer_cart_guest');
+    } catch (_) {
+      // ignore storage error
+    }
   }
 
   /// Revalidates cart items with backend and adjusts quantities if stock reduced

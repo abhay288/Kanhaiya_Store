@@ -79,4 +79,85 @@ export class NotificationController {
       next(err);
     }
   }
+
+  static async deleteNotification(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      await Notification.findByIdAndDelete(id);
+      return sendSuccess(res, { success: true }, 'Notification deleted successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async clearAllNotifications(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id ? new mongoose.Types.ObjectId(req.user.id) : null;
+      const isAdmin = (req.user as any)?.role === 'ADMIN' || (req.user as any)?.email === 'kanhaiyaastore@gmail.com' || req.query.admin === 'true';
+      const phone = (req.body?.phone || req.query.phone) as string;
+
+      if (isAdmin) {
+        await Notification.deleteMany({
+          $or: [
+            { isAdmin: true },
+            { type: 'ADMIN_ALERT' },
+            { appName: 'Store Admin Alert' },
+            ...(userId ? [{ userId }] : []),
+          ],
+        });
+      } else if (userId) {
+        await Notification.deleteMany({ userId });
+      } else if (phone) {
+        await Notification.deleteMany({ customerPhone: phone.trim() });
+      } else {
+        await Notification.deleteMany({});
+      }
+
+      return sendSuccess(res, { success: true }, 'All notifications cleared successfully');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Admin: Broadcast push notification and store announcement to all customers
+   */
+  static async broadcastNotification(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { title, message, type } = req.body;
+      if (!title || !title.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'Notification title is required' },
+        });
+      }
+      if (!message || !message.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'Notification message is required' },
+        });
+      }
+
+      const notification = await Notification.create({
+        title: title.trim(),
+        message: message.trim(),
+        type: type || 'STORE_ANNOUNCEMENT',
+        appName: 'Kanhaiya General Store',
+        logoUrl: 'assets/images/kgs_logo.png',
+        isRead: false,
+        isAdmin: false,
+        userId: null,
+        customerPhone: '',
+        metadata: {
+          broadcast: true,
+          sentAt: new Date().toISOString(),
+          sentBy: (req.user as any)?.displayName || req.user?.email || 'Store Administrator',
+        },
+      });
+
+      return sendSuccess(res, notification, 'Push notification broadcast sent successfully to all customers');
+    } catch (err) {
+      next(err);
+    }
+  }
 }

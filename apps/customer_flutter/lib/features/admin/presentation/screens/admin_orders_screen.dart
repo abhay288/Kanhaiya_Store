@@ -98,12 +98,64 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
       final ordersData = await ordersFuture;
 
       if (mounted) {
+        final incomingOrders = List<CustomerOrderModel>.from(ordersData['orders'] as List<CustomerOrderModel>);
+        
+        // Priority sort: active orders (PLACED, CONFIRMED, PREPARING, READY_FOR_PICKUP, OUT_FOR_DELIVERY) first,
+        // completed and cancelled orders go down to the bottom
+        if (_selectedStatus == 'ALL') {
+          incomingOrders.sort((a, b) {
+            final aFinished = (a.orderStatus == 'COMPLETED' || a.orderStatus == 'CANCELLED') ? 1 : 0;
+            final bFinished = (b.orderStatus == 'COMPLETED' || b.orderStatus == 'CANCELLED') ? 1 : 0;
+            if (aFinished != bFinished) {
+              return aFinished.compareTo(bFinished);
+            }
+            return b.createdAt.compareTo(a.createdAt);
+          });
+        }
+
+        final mergedMetrics = Map<String, int>.from(metricsData);
+        // Fallback: If metrics endpoint returned 0 or missing totalOrders, but we have orders:
+        if ((mergedMetrics['totalOrders'] == null || mergedMetrics['totalOrders'] == 0) && incomingOrders.isNotEmpty) {
+          mergedMetrics['totalOrders'] = ordersData['total'] as int? ?? incomingOrders.length;
+          mergedMetrics['placedOrders'] = incomingOrders.where((o) => o.orderStatus == 'PLACED').length;
+          mergedMetrics['confirmedOrders'] = incomingOrders.where((o) => o.orderStatus == 'CONFIRMED').length;
+          mergedMetrics['preparingOrders'] = incomingOrders.where((o) => o.orderStatus == 'PREPARING' || o.orderStatus == 'PACKED').length;
+          mergedMetrics['readyForPickupOrders'] = incomingOrders.where((o) => o.orderStatus == 'READY_FOR_PICKUP').length;
+          mergedMetrics['outForDeliveryOrders'] = incomingOrders.where((o) => o.orderStatus == 'OUT_FOR_DELIVERY').length;
+          mergedMetrics['completedOrders'] = incomingOrders.where((o) => o.orderStatus == 'COMPLETED').length;
+          mergedMetrics['cancelledOrders'] = incomingOrders.where((o) => o.orderStatus == 'CANCELLED').length;
+          mergedMetrics['awaitingPaymentOrders'] = incomingOrders.where((o) => o.paymentMethod == 'WHATSAPP_QR' && o.paymentStatus != 'PAID').length;
+        }
+
+        final newTotal = ordersData['total'] as int;
+        final newPages = (ordersData['totalPages'] as int).clamp(1, 9999);
+        final newPage = ordersData['page'] as int;
+
+        // In silent mode, only call setState if data actually changed to prevent flickering
+        if (silent && _orders.length == incomingOrders.length) {
+          bool identical = true;
+          for (int i = 0; i < _orders.length; i++) {
+            if (_orders[i].id != incomingOrders[i].id ||
+                _orders[i].orderStatus != incomingOrders[i].orderStatus ||
+                _orders[i].paymentStatus != incomingOrders[i].paymentStatus) {
+              identical = false;
+              break;
+            }
+          }
+          if (identical &&
+              _totalOrders == newTotal &&
+              _currentPage == newPage &&
+              _metrics['totalOrders'] == mergedMetrics['totalOrders']) {
+            return;
+          }
+        }
+
         setState(() {
-          _metrics = metricsData;
-          _orders = ordersData['orders'] as List<CustomerOrderModel>;
-          _totalOrders = ordersData['total'] as int;
-          _totalPages = (ordersData['totalPages'] as int).clamp(1, 9999);
-          _currentPage = ordersData['page'] as int;
+          _metrics = mergedMetrics;
+          _orders = incomingOrders;
+          _totalOrders = newTotal;
+          _totalPages = newPages;
+          _currentPage = newPage;
           _isLoading = false;
         });
       }
@@ -726,6 +778,7 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
     final isPaid = order.paymentStatus.toUpperCase() == 'PAID';
 
     return Card(
+      key: ValueKey(order.id),
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 0.5,
       shape: RoundedRectangleBorder(

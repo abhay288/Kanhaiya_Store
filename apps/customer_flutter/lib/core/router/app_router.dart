@@ -24,6 +24,9 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/checkout/domain/models/order_model.dart';
+import '../../features/checkout/presentation/screens/order_confirmation_screen.dart';
+import '../../features/orders/presentation/screens/paper_invoice_screen.dart';
 import '../../features/profile/presentation/screens/privacy_policy_screen.dart';
 import 'scaffold_with_nav_bar.dart';
 
@@ -36,10 +39,46 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
     routes: [
+      // Root redirect to Home tab
+      GoRoute(
+        path: '/',
+        redirect: (context, state) => '/home',
+      ),
+
       // Splash Screen
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
+      ),
+
+      // Order Confirmation Screen
+      GoRoute(
+        path: '/order-confirmation',
+        redirect: (context, state) {
+          if (state.extra == null || state.extra is! CustomerOrderModel) {
+            return '/orders';
+          }
+          return null;
+        },
+        builder: (context, state) {
+          final order = state.extra as CustomerOrderModel;
+          return OrderConfirmationScreen(order: order);
+        },
+      ),
+
+      // Paper Invoice Route
+      GoRoute(
+        path: '/invoice',
+        redirect: (context, state) {
+          if (state.extra == null || state.extra is! CustomerOrderModel) {
+            return '/orders';
+          }
+          return null;
+        },
+        builder: (context, state) {
+          final order = state.extra as CustomerOrderModel;
+          return PaperInvoiceScreen(order: order);
+        },
       ),
 
       // Auth / Sign In Screen
@@ -211,7 +250,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/orders',
-                builder: (context, state) => const OrdersScreen(),
+                builder: (context, state) => OrdersScreen(
+                  initialOrderNumber: state.uri.queryParameters['orderNumber'] ??
+                      state.uri.queryParameters['orderId'],
+                ),
               ),
             ],
           ),

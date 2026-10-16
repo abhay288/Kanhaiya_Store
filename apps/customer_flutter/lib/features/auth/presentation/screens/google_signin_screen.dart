@@ -134,7 +134,7 @@ class GoogleSignInScreen extends ConsumerWidget {
 
               // Guest Browse Option
               TextButton(
-                onPressed: () => context.go('/'),
+                onPressed: () => context.go('/home'),
                 child: const Text('Continue Browsing as Guest', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: AppDimensions.md),

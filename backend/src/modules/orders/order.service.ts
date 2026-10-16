@@ -623,10 +623,26 @@ export class OrderService {
     const sortDirection = params.sortOrder === 'asc' ? 1 : -1;
     const sort: any = { [sortField]: sortDirection };
 
-    const [orders, total] = await Promise.all([
+    const [rawOrders, total] = await Promise.all([
       Order.find(query).sort(sort).skip(skip).limit(limit).lean(),
       Order.countDocuments(query),
     ]);
+
+    // When sorting by default or createdAt, ensure active/pending orders come first,
+    // and completed/cancelled orders go to the bottom
+    const orders = (!params.sortBy || params.sortBy === 'createdAt')
+      ? rawOrders.sort((a: any, b: any) => {
+          const finishedStatuses = ['COMPLETED', 'CANCELLED'];
+          const aFinished = finishedStatuses.includes(String(a.orderStatus || '').toUpperCase()) ? 1 : 0;
+          const bFinished = finishedStatuses.includes(String(b.orderStatus || '').toUpperCase()) ? 1 : 0;
+          if (aFinished !== bFinished) {
+            return aFinished - bFinished; // Active (0) before finished (1)
+          }
+          const timeA = new Date(a.createdAt || 0).getTime();
+          const timeB = new Date(b.createdAt || 0).getTime();
+          return sortDirection === 1 ? timeA - timeB : timeB - timeA;
+        })
+      : rawOrders;
 
     return {
       orders,
@@ -667,14 +683,23 @@ export class OrderService {
 
     return {
       total,
+      totalOrders: total,
       placed,
+      placedOrders: placed,
       confirmed,
+      confirmedOrders: confirmed,
       preparing,
+      preparingOrders: preparing,
       outForDelivery,
+      outForDeliveryOrders: outForDelivery,
       readyForPickup,
+      readyForPickupOrders: readyForPickup,
       completed,
+      completedOrders: completed,
       cancelled,
+      cancelledOrders: cancelled,
       pendingWhatsapp,
+      awaitingPaymentOrders: pendingWhatsapp,
     };
   }
 
@@ -1261,6 +1286,65 @@ export class OrderService {
       deleted: true,
       orderNumber: order.orderNumber,
       message: `Order #${order.orderNumber} has been permanently deleted from MongoDB and stock restored.`,
+    };
+  }
+
+  /**
+   * Customer / Owner: Delete an order invoice and restore inventory if applicable
+   */
+  static async deleteOrderCustomer(
+    idOrNumber: string,
+    actorUser: AuthenticatedUserPayload
+  ): Promise<{ deleted: boolean; orderNumber: string; message: string }> {
+    const order = await this.getOrderByIdOrNumber(idOrNumber, actorUser);
+
+    const isOwner =
+      order.customerId?.toString() === actorUser.id ||
+      (order.customerEmail && order.customerEmail.toLowerCase() === actorUser.email.toLowerCase());
+    const isAdmin = actorUser.role === 'ADMIN';
+
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenError('You are not authorized to delete this order invoice');
+    }
+
+    // Restore inventory if items were deducted and never restored
+    if (!order.isInventoryRestored && order.orderStatus !== 'CANCELLED') {
+      for (const item of order.items) {
+        try {
+          const prod = await Product.findById(item.productId);
+          if (prod) {
+            const prev = prod.stockQuantity;
+            const next = prev + item.quantity;
+            prod.stockQuantity = next;
+            prod.isAvailable = true;
+            await prod.save();
+
+            await StockMovement.create({
+              productId: prod._id,
+              previousQuantity: prev,
+              changeQuantity: item.quantity,
+              finalQuantity: next,
+              adjustmentType: 'ORDER_FULFILLMENT',
+              reason: `Order #${order.orderNumber} deleted by ${isAdmin ? 'Admin' : 'Customer'}: inventory restored`,
+              referenceNumber: order.orderNumber,
+              performedBy: new mongoose.Types.ObjectId(actorUser.id),
+              performerEmail: actorUser.email || (isAdmin ? 'admin@kanhaiyastore.com' : 'customer@kanhaiyastore.com'),
+              performerName: actorUser.email || (isAdmin ? 'Store Admin' : order.customerName),
+            });
+          }
+        } catch {
+          // ignore
+        }
+      }
+      order.isInventoryRestored = true;
+    }
+
+    await Order.findByIdAndDelete(order._id);
+
+    return {
+      deleted: true,
+      orderNumber: order.orderNumber,
+      message: `Invoice #${order.invoiceNumber || order.orderNumber} deleted successfully.`,
     };
   }
 }

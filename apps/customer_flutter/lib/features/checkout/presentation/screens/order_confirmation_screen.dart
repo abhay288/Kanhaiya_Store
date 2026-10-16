@@ -1,18 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../domain/models/order_model.dart';
+import '../../../cart/presentation/controllers/cart_controller.dart';
+import '../../../orders/presentation/widgets/invoice_dialog.dart';
 
-class OrderConfirmationScreen extends StatelessWidget {
+class OrderConfirmationScreen extends ConsumerStatefulWidget {
   final CustomerOrderModel order;
 
   const OrderConfirmationScreen({super.key, required this.order});
 
   @override
+  ConsumerState<OrderConfirmationScreen> createState() => _OrderConfirmationScreenState();
+}
+
+class _OrderConfirmationScreenState extends ConsumerState<OrderConfirmationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(cartProvider).isNotEmpty) {
+        ref.read(cartProvider.notifier).clearCart();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final order = widget.order;
     final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
     return Scaffold(
@@ -350,18 +369,51 @@ class OrderConfirmationScreen extends StatelessWidget {
             const SizedBox(height: AppDimensions.xl),
 
             // Bottom Buttons
-            ElevatedButton(
-              onPressed: () {
-                context.go('/orders');
-              },
-              child: const Text('View All Orders'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  context.go('/orders');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.receipt_long_outlined, size: 20),
+                label: const Text('View All Orders', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              ),
             ),
             const SizedBox(height: AppDimensions.sm),
-            OutlinedButton(
-              onPressed: () {
-                context.go('/');
-              },
-              child: const Text('Continue Shopping'),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => showOrderInvoiceDialog(context, order),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.print_outlined, size: 20),
+                label: const Text('View & Print Full Paper Invoice', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              ),
+            ),
+            const SizedBox(height: AppDimensions.sm),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () {
+                  context.go('/home');
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.storefront_outlined, size: 20),
+                label: const Text('Continue Shopping', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              ),
             ),
           ],
         ),

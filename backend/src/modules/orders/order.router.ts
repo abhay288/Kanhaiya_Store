@@ -48,4 +48,7 @@ router.get('/:idOrNumber/invoice', optionalAuthenticate, OrderController.downloa
 // Single order details by ID or orderNumber (must remain after specific /my and /admin routes)
 router.get('/:idOrNumber', optionalAuthenticate, OrderController.getOrder as any);
 
+// Customer / Admin delete order invoice
+router.delete('/:idOrNumber', authenticate, OrderController.deleteCustomerOrder as any);
+
 export const orderRouter = router;

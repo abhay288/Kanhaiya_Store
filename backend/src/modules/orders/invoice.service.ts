@@ -201,8 +201,36 @@ export class InvoiceService {
         doc.text('Total Amount Payable:', 335, currentY + 45);
         doc.text(`Rs. ${order.totalAmount.toFixed(2)}`, 480, currentY + 45);
 
+        // 6. Signatory
+        const sigY = currentY + 70;
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(8)
+          .fillColor(charcoalColor)
+          .text('For KANHAIYA GENERAL STORE', 370, sigY, { width: 180, align: 'center' });
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(9)
+          .text('Kanhaiya Chaurasiya', 370, sigY + 14, { width: 180, align: 'center' });
+        doc
+          .moveTo(380, sigY + 26)
+          .lineTo(540, sigY + 26)
+          .lineWidth(0.5)
+          .strokeColor('#94A3B8')
+          .stroke();
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(7.5)
+          .fillColor(charcoalColor)
+          .text('Authorised Signatory', 370, sigY + 29, { width: 180, align: 'center' });
+        doc
+          .font('Helvetica-Oblique')
+          .fontSize(6.5)
+          .fillColor(grayMuted)
+          .text('* Digital Computer Generated Signature', 370, sigY + 39, { width: 180, align: 'center' });
+
         // 7. Footer & Store Policy
-        const footerY = currentY + 95;
+        const footerY = sigY + 55;
         doc
           .font('Helvetica')
           .fontSize(8)

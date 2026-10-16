@@ -31,7 +31,7 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationItemModel>> {
   }
 
   Future<List<NotificationItemModel>> _fetch() async {
-    final authState = ref.watch(authProvider);
+    final authState = ref.read(authProvider);
     final userPhone = authState.user?.phoneNumber;
     final isAdmin = authState.isAdmin;
     final readIds = await _getLocalReadIds();
@@ -45,13 +45,16 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationItemModel>> {
         return item;
       }).toList();
     } catch (_) {
-      return [];
+      return state.value ?? [];
     }
   }
 
-  Future<void> refresh() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _fetch());
+  Future<void> refresh({bool silent = false}) async {
+    if (!silent && (state.value == null || state.value!.isEmpty)) {
+      state = const AsyncValue.loading();
+    }
+    final fresh = await _fetch();
+    state = AsyncValue.data(fresh);
   }
 
   Future<void> markAsRead(String id) async {
@@ -91,6 +94,56 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationItemModel>> {
     } catch (_) {
       // Local optimistic update kept
     }
+  }
+
+  /// Delete a single notification permanently
+  Future<void> deleteNotification(String id) async {
+    final current = state.value ?? [];
+    state = AsyncValue.data(
+      current.where((item) => item.id != id).toList(),
+    );
+
+    try {
+      await _repo.deleteNotification(id);
+    } catch (_) {
+      // Optimistic update retained
+    }
+  }
+
+  /// Delete all notifications permanently
+  Future<void> clearAllNotifications() async {
+    state = const AsyncValue.data([]);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_readIdsKey);
+    } catch (_) {}
+
+    try {
+      final authState = ref.read(authProvider);
+      await _repo.clearAllNotifications(
+        phone: authState.user?.phoneNumber,
+        admin: authState.isAdmin,
+      );
+    } catch (_) {
+      // Optimistic update retained
+    }
+  }
+
+  /// Broadcast a store announcement to all customers (Admin only)
+  Future<NotificationItemModel> broadcastNotification({
+    required String title,
+    required String message,
+    String? type,
+  }) async {
+    final created = await _repo.broadcastNotification(
+      title: title,
+      message: message,
+      type: type,
+    );
+    final current = state.value ?? [];
+    state = AsyncValue.data([created, ...current]);
+    return created;
   }
 }
 

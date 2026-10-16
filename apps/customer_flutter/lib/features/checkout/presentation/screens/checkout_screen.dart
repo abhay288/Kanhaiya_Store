@@ -9,7 +9,6 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../cart/presentation/controllers/cart_controller.dart';
 import '../../data/repositories/checkout_repository.dart';
 import '../../domain/models/store_settings_model.dart';
-import 'order_confirmation_screen.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -472,16 +471,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       }
 
       // Clear cart on successful order creation
-      ref.read(cartProvider.notifier).clearCart();
+      await ref.read(cartProvider.notifier).clearCart();
 
       if (!mounted) return;
 
-      // Navigate to order confirmation screen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => OrderConfirmationScreen(order: createdOrder),
-        ),
-      );
+      // Navigate to order confirmation screen via GoRouter
+      context.go('/order-confirmation', extra: createdOrder);
     } catch (e) {
       if (mounted) {
         setState(() {

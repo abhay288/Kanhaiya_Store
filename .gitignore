@@ -53,6 +53,7 @@ build/
 .metadata
 
 # Android & iOS build artifacts
+*.apk
 android/.gradle/
 android/app/build/
 android/local.properties

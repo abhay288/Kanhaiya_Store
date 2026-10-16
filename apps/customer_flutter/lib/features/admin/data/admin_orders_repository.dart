@@ -25,7 +25,18 @@ class AdminOrdersRepository {
       }
     }
     final raw = res.data['data'] as Map<String, dynamic>? ?? {};
-    return raw.map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0));
+    final map = raw.map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0));
+    // Ensure aliases are present
+    map['totalOrders'] ??= map['total'] ?? 0;
+    map['placedOrders'] ??= map['placed'] ?? 0;
+    map['confirmedOrders'] ??= map['confirmed'] ?? 0;
+    map['preparingOrders'] ??= map['preparing'] ?? 0;
+    map['outForDeliveryOrders'] ??= map['outForDelivery'] ?? 0;
+    map['readyForPickupOrders'] ??= map['readyForPickup'] ?? 0;
+    map['completedOrders'] ??= map['completed'] ?? 0;
+    map['cancelledOrders'] ??= map['cancelled'] ?? 0;
+    map['awaitingPaymentOrders'] ??= map['pendingWhatsapp'] ?? 0;
+    return map;
   }
 
   /// Fetch Paginated, Filtered and Searched Admin Orders

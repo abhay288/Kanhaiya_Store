@@ -68,11 +68,39 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
       );
 
       if (mounted) {
+        final rawUsers = res['users'] as List<AdminUserModel>;
+        // Filter out Test Administrator from the users list
+        final filteredUsers = rawUsers.where((u) {
+          final name = u.displayName.toLowerCase();
+          return !name.contains('test administrator') &&
+                 !(name.contains('test') && u.role == 'ADMIN');
+        }).toList();
+
+        final newTotal = filteredUsers.length;
+        final newPages = (res['totalPages'] as int).clamp(1, 9999);
+        final newPage = res['page'] as int;
+
+        if (silent && _users.length == filteredUsers.length) {
+          bool identical = true;
+          for (int i = 0; i < _users.length; i++) {
+            if (_users[i].id != filteredUsers[i].id ||
+                _users[i].isActive != filteredUsers[i].isActive ||
+                _users[i].role != filteredUsers[i].role ||
+                _users[i].totalSpend != filteredUsers[i].totalSpend) {
+              identical = false;
+              break;
+            }
+          }
+          if (identical && _totalUsers == newTotal && _currentPage == newPage) {
+            return;
+          }
+        }
+
         setState(() {
-          _users = res['users'] as List<AdminUserModel>;
-          _totalUsers = res['total'] as int;
-          _totalPages = (res['totalPages'] as int).clamp(1, 9999);
-          _currentPage = res['page'] as int;
+          _users = filteredUsers;
+          _totalUsers = newTotal;
+          _totalPages = newPages;
+          _currentPage = newPage;
           _isLoading = false;
         });
       }
@@ -101,7 +129,7 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
             children: [
               Icon(Icons.person_add, color: AppColors.primary),
               SizedBox(width: 8),
-              Text('Add User to MongoDB', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text('Add New User', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ],
           ),
           content: SingleChildScrollView(
@@ -368,14 +396,14 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
       builder: (ctx) => AlertDialog(
         title: Text('Delete "${user.displayName}"?'),
         content: Text(
-          'Are you sure you want to permanently delete user "${user.email}" directly from MongoDB? This action cannot be undone.',
+          'Are you sure you want to permanently delete user "${user.email}"? This action cannot be undone.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete from MongoDB', style: TextStyle(color: Colors.white)),
+            child: const Text('Delete User', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -388,7 +416,7 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
       await repo.deleteUser(user.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User "${user.displayName}" permanently deleted from MongoDB.')),
+          SnackBar(content: Text('User "${user.displayName}" permanently deleted.')),
         );
         _fetchUsers();
       }
@@ -468,7 +496,6 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildInfoRow('MongoDB ID', user.id),
                       _buildInfoRow('Email Address', u['email'] ?? user.email),
                       _buildInfoRow('Phone Number', (u['phoneNumber'] ?? user.phoneNumber).isNotEmpty ? (u['phoneNumber'] ?? user.phoneNumber) : 'Not specified'),
                       _buildInfoRow('Total Spend', CurrencyFormatter.format(user.totalSpend)),
@@ -574,7 +601,7 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Mongo User Management',
+              'User Management',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
             ),
             if (!_isLoading)
@@ -866,7 +893,7 @@ class _AdminCustomersScreenState extends ConsumerState<AdminCustomersScreen> {
                                               children: [
                                                 Icon(Icons.delete_forever, size: 18, color: Colors.red),
                                                 SizedBox(width: 8),
-                                                Text('Delete from MongoDB', style: TextStyle(fontSize: 12, color: Colors.red)),
+                                                Text('Delete User', style: TextStyle(fontSize: 12, color: Colors.red)),
                                               ],
                                             ),
                                           ),

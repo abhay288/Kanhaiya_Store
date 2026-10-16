@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/widgets/feedback_views.dart';
+import '../../../admin/presentation/screens/admin_order_details_screen.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/notification_controller.dart';
 import '../../domain/models/notification_item_model.dart';
+import '../widgets/broadcast_notification_dialog.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -17,10 +20,104 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   String _activeFilter = 'all'; // 'all', 'unread', 'orders'
 
+  Future<void> _confirmClearAll() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_sweep, color: AppColors.error),
+            SizedBox(width: 8),
+            Text('Clear All Notifications?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to delete all notifications? This action cannot be undone.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Clear All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await ref.read(notificationsNotifierProvider.notifier).clearAllNotifications();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All notifications cleared'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteNotification(NotificationItemModel item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_outline, color: AppColors.error),
+            SizedBox(width: 8),
+            Text('Delete Notification?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: Text(
+          'Delete "${item.title}" permanently?',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await ref.read(notificationsNotifierProvider.notifier).deleteNotification(item.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Notification deleted'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final notificationsAsync = ref.watch(notificationsNotifierProvider);
     final unreadCount = ref.watch(unreadNotificationCountProvider);
+    final authState = ref.watch(authProvider);
+    final hasNotifications = (notificationsAsync.value ?? []).isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -62,6 +159,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ],
         ),
         actions: [
+          if (authState.isAdmin)
+            IconButton(
+              icon: const Icon(Icons.campaign_outlined, color: AppColors.primary),
+              tooltip: 'Broadcast Push Notification',
+              onPressed: () => showBroadcastNotificationDialog(context, ref),
+            ),
           if (unreadCount > 0)
             TextButton.icon(
               icon: const Icon(Icons.done_all_rounded, size: 16, color: AppColors.primary),
@@ -83,28 +186,53 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 );
               },
             ),
+          if (hasNotifications)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.error),
+              tooltip: 'Clear All Notifications',
+              onPressed: _confirmClearAll,
+            ),
         ],
       ),
-      body: notificationsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-        error: (err, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 40, color: AppColors.error),
-              const SizedBox(height: 12),
-              Text('Failed to load notifications: $err'),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => ref.read(notificationsNotifierProvider.notifier).refresh(),
-                child: const Text('Try Again'),
+      floatingActionButton: authState.isAdmin
+          ? FloatingActionButton.extended(
+              onPressed: () => showBroadcastNotificationDialog(context, ref),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.campaign),
+              label: const Text(
+                'Broadcast Announcement',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
               ),
-            ],
-          ),
-        ),
-        data: (items) {
+            )
+          : null,
+      body: Builder(
+        builder: (context) {
+          if (notificationsAsync.isLoading && notificationsAsync.value == null) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
+          }
+
+          if (notificationsAsync.hasError && notificationsAsync.value == null) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 40, color: AppColors.error),
+                  const SizedBox(height: 12),
+                  Text('Failed to load notifications: ${notificationsAsync.error}'),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => ref.read(notificationsNotifierProvider.notifier).refresh(),
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final items = notificationsAsync.value ?? [];
           final filtered = items.where((item) {
             if (_activeFilter == 'unread') return !item.isRead;
             if (_activeFilter == 'orders') return item.isOrderRelated;
@@ -138,6 +266,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   onRefresh: () => ref.read(notificationsNotifierProvider.notifier).refresh(),
                   child: filtered.isEmpty
                       ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           children: [
                             SizedBox(height: MediaQuery.of(context).size.height * 0.15),
                             EmptyView(
@@ -151,12 +280,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           ],
                         )
                       : ListView.separated(
+                          key: ValueKey('notif_list_$_activeFilter'),
+                          physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.all(AppDimensions.lg),
                           itemCount: filtered.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final item = filtered[index];
-                            return _buildNotificationCard(item);
+                            return _buildNotificationCard(item, authState);
                           },
                         ),
                 ),
@@ -189,16 +320,32 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  Widget _buildNotificationCard(NotificationItemModel item) {
+  Widget _buildNotificationCard(NotificationItemModel item, AuthState authState) {
     final isUnread = !item.isRead;
 
     return InkWell(
+      key: ValueKey('card_${item.id}'),
       onTap: () {
         if (isUnread) {
           ref.read(notificationsNotifierProvider.notifier).markAsRead(item.id);
         }
         if (item.isOrderRelated) {
-          context.push('/orders');
+          final orderRef = item.orderNumber ?? item.orderId;
+          if (authState.isAdmin) {
+            if (orderRef != null && orderRef.isNotEmpty) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AdminOrderDetailsScreen(orderId: orderRef),
+                ),
+              );
+            }
+          } else {
+            if (orderRef != null && orderRef.isNotEmpty) {
+              context.go('/orders?orderNumber=$orderRef');
+            } else {
+              context.go('/orders');
+            }
+          }
         }
       },
       borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
@@ -285,6 +432,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             Text(
                               item.timeAgo,
                               style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                            ),
+                            const SizedBox(width: 6),
+                            InkWell(
+                              onTap: () => _confirmDeleteNotification(item),
+                              borderRadius: BorderRadius.circular(12),
+                              child: const Padding(
+                                padding: EdgeInsets.all(2),
+                                child: Icon(Icons.delete_outline, size: 16, color: Colors.grey),
+                              ),
                             ),
                           ],
                         ),

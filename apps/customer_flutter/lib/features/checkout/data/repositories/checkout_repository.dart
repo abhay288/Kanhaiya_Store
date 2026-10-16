@@ -15,6 +15,7 @@ abstract class CheckoutRepository {
   Future<CustomerOrderModel> getOrder(String idOrNumber);
   Future<List<CustomerOrderModel>> getMyOrders();
   Future<Map<String, dynamic>> getOrderTracking(String idOrNumber, {String? token});
+  Future<bool> deleteOrder(String idOrNumber);
 }
 
 class ApiCheckoutRepository implements CheckoutRepository {
@@ -166,6 +167,21 @@ class ApiCheckoutRepository implements CheckoutRepository {
           e.response?.data?['message'] ??
           'Failed to fetch tracking';
       throw Exception(msg);
+    }
+  }
+
+  @override
+  Future<bool> deleteOrder(String idOrNumber) async {
+    try {
+      final res = await _client.dio.delete('/orders/$idOrNumber');
+      return res.statusCode == 200;
+    } catch (_) {
+      try {
+        final res = await _client.dio.delete('/orders/admin/$idOrNumber');
+        return res.statusCode == 200;
+      } catch (_) {
+        return false;
+      }
     }
   }
 }
