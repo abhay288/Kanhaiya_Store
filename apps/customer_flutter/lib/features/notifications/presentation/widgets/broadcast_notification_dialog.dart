@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_dimensions.dart';
 import '../controllers/notification_controller.dart';
 
 Future<bool?> showBroadcastNotificationDialog(BuildContext context, WidgetRef ref) {
@@ -113,288 +112,303 @@ class _BroadcastNotificationDialogState
         : _messageController.text.trim();
 
     final maxDialogWidth = 520.0;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxDialogWidth),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppDimensions.lg),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.campaign_rounded,
-                        color: AppColors.primary,
-                        size: 26,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Broadcast Push Notification',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Send instant alert to all registered customer devices',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.grey),
-                      onPressed: _isSending ? null : () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                const Divider(height: 28),
-
-                if (_errorText != null) ...[
+        constraints: BoxConstraints(
+          maxWidth: maxDialogWidth,
+          maxHeight: screenHeight * 0.88,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. PINNED HEADER
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
+              child: Row(
+                children: [
                   Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(9),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFF87171)),
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _errorText!,
-                            style: const TextStyle(
-                              color: Color(0xFFB91C1C),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                    child: const Icon(
+                      Icons.campaign_rounded,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'Broadcast Push Notification',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Send instant alert to all registered customer devices',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                    onPressed: _isSending ? null : () => Navigator.of(context).pop(),
+                  ),
                 ],
+              ),
+            ),
+            const Divider(height: 1),
 
-                // Notification Category Type
-                const Text(
-                  'Notification Category',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedType,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  items: _typeLabels.entries.map((entry) {
-                    return DropdownMenuItem<String>(
-                      value: entry.key,
-                      child: Text(
-                        entry.value,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: _isSending
-                      ? null
-                      : (val) {
-                          if (val != null) setState(() => _selectedType = val);
-                        },
-                ),
-                const SizedBox(height: 16),
-
-                // Title
-                const Text(
-                  'Notification Title *',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _titleController,
-                  enabled: !_isSending,
-                  maxLength: 65,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Special Offer: 10% Off on Atta & Dal Today!',
-                    hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    prefixIcon: const Icon(Icons.title, size: 20, color: AppColors.primary),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Please enter a title for the notification';
-                    }
-                    if (val.trim().length < 4) {
-                      return 'Title must be at least 4 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-
-                // Message Body
-                const Text(
-                  'Notification Message Body *',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _messageController,
-                  enabled: !_isSending,
-                  maxLines: 3,
-                  maxLength: 250,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Fresh stock of premium Chakki Atta and Basmati Rice is now available. Order for counter pickup now.',
-                    hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-                    contentPadding: const EdgeInsets.all(14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Please write the message text';
-                    }
-                    if (val.trim().length < 8) {
-                      return 'Message must be at least 8 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-
-                // Live Preview Card
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blueGrey.shade200),
-                  ),
+            // 2. SCROLLABLE FORM CONTENT
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.visibility_outlined, size: 16, color: AppColors.textSecondary),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Live Smartphone Notification Preview',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textSecondary,
-                            ),
+                      if (_errorText != null) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFF87171)),
                           ),
-                        ],
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _errorText!,
+                                  style: const TextStyle(
+                                    color: Color(0xFFB91C1C),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // Notification Category Type
+                      const Text(
+                        'Notification Category',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedType,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                        ),
+                        items: _typeLabels.entries.map((entry) {
+                          return DropdownMenuItem<String>(
+                            value: entry.key,
+                            child: Text(
+                              entry.value,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: _isSending
+                            ? null
+                            : (val) {
+                                if (val != null) setState(() => _selectedType = val);
+                              },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Title
+                      const Text(
+                        'Notification Title *',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _titleController,
+                        enabled: !_isSending,
+                        maxLength: 65,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Special Offer: 10% Off on Atta & Dal Today!',
+                          hintStyle: TextStyle(fontSize: 12.5, color: Colors.grey.shade400),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          prefixIcon: const Icon(Icons.title, size: 18, color: AppColors.primary),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Please enter a title for the notification';
+                          }
+                          if (val.trim().length < 4) {
+                            return 'Title must be at least 4 characters';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 10),
-                      // Mock Phone Push Card
+
+                      // Message Body
+                      const Text(
+                        'Notification Message Body *',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _messageController,
+                        enabled: !_isSending,
+                        maxLines: 3,
+                        maxLength: 250,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Fresh stock of premium Chakki Atta and Basmati Rice is now available. Order for counter pickup now.',
+                          hintStyle: TextStyle(fontSize: 12.5, color: Colors.grey.shade400),
+                          contentPadding: const EdgeInsets.all(12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Please write the message text';
+                          }
+                          if (val.trim().length < 8) {
+                            return 'Message must be at least 8 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Live Preview Card
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 6,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                          border: Border.all(color: Colors.grey.shade200),
+                          border: Border.all(color: Colors.blueGrey.shade200),
                         ),
-                        child: Row(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                                border: Border.all(color: AppColors.primary, width: 1.5),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              padding: const EdgeInsets.all(2),
-                              child: Image.asset(
-                                'assets/images/kgs_logo.png',
-                                fit: BoxFit.contain,
-                              ),
+                            Row(
+                              children: const [
+                                Icon(Icons.visibility_outlined, size: 15, color: AppColors.textSecondary),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Live Smartphone Notification Preview',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
+                            const SizedBox(height: 8),
+                            // Mock Phone Push Card
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 5,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        'Kanhaiya General Store',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                      const Text(
-                                        'now',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    previewTitle,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 13,
-                                      color: Colors.black87,
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white,
+                                      border: Border.all(color: AppColors.primary, width: 1.5),
+                                    ),
+                                    clipBehavior: Clip.antiAlias,
+                                    padding: const EdgeInsets.all(2),
+                                    child: Image.asset(
+                                      'assets/images/kgs_logo.png',
+                                      fit: BoxFit.contain,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    previewMessage,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade700,
-                                      height: 1.3,
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: const [
+                                            Text(
+                                              'Kanhaiya General Store',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w800,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                            Text(
+                                              'now',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          previewTitle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 12.5,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          previewMessage,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade700,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -406,48 +420,67 @@ class _BroadcastNotificationDialogState
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+              ),
+            ),
 
-                // Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
+            const Divider(height: 1),
+
+            // 3. PINNED BOTTOM ACTION BAR (ALWAYS 100% VISIBLE)
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: OutlinedButton(
                       onPressed: _isSending ? null : () => Navigator.of(context).pop(),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        side: BorderSide(color: Colors.grey.shade300),
                       ),
-                      child: const Text('Cancel'),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black87),
+                      ),
                     ),
-                    const SizedBox(width: 10),
-                    ElevatedButton.icon(
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
                       onPressed: _isSending ? null : _handleBroadcast,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        elevation: 2,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       icon: _isSending
                           ? const SizedBox(
-                              width: 18,
-                              height: 18,
+                              width: 16,
+                              height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: Colors.white,
                               ),
                             )
-                          : const Icon(Icons.send_rounded, size: 18),
+                          : const Icon(Icons.send_rounded, size: 16),
                       label: Text(
                         _isSending ? 'Broadcasting...' : 'Send Broadcast',
                         style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                       ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
