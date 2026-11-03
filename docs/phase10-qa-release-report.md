@@ -180,7 +180,7 @@ A centralized GitHub Actions workflow has been configured at [`.github/workflows
 
 ### Android Release Preparation
 
-1. **Application ID:** `com.kanhaiya.store.customer_flutter` (defined in [`build.gradle.kts`](file:///e:/Kanhaiya%20Store%20App/apps/customer_flutter/android/app/build.gradle.kts)).
+1. **Application ID:** `com.kanhaiya.store.customer` (defined in [`build.gradle.kts`](file:///e:/Kanhaiya%20Store%20App/apps/customer_flutter/android/app/build.gradle.kts)).
 2. **App Launcher Label:** `Kanhaiya General Store` (defined in [`AndroidManifest.xml`](file:///e:/Kanhaiya%20Store%20App/apps/customer_flutter/android/app/src/main/AndroidManifest.xml)).
 3. **Permissions:** Declares `<uses-permission android:name="android.permission.INTERNET"/>`.
 4. **Signing Instructions:** To generate the production release APK or App Bundle:

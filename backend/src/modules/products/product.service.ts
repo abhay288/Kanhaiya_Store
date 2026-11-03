@@ -44,8 +44,30 @@ export class ProductService {
     }
 
     // Category filter
-    if (filter.categoryId && mongoose.Types.ObjectId.isValid(filter.categoryId)) {
-      query.categoryId = new mongoose.Types.ObjectId(filter.categoryId);
+    if (filter.categoryId) {
+      let targetCatId: mongoose.Types.ObjectId | null = null;
+      if (mongoose.Types.ObjectId.isValid(filter.categoryId)) {
+        targetCatId = new mongoose.Types.ObjectId(filter.categoryId);
+      } else {
+        const found = await Category.findOne({ slug: filter.categoryId.toLowerCase().trim() }).select('_id');
+        if (found) {
+          targetCatId = found._id as mongoose.Types.ObjectId;
+        }
+      }
+
+      if (targetCatId) {
+        // Also include subcategories of this parent category
+        const subcategories = await Category.find({ parentId: targetCatId }).select('_id');
+        const allCatIds = [targetCatId, ...subcategories.map((s) => s._id)];
+
+        query.$or = [
+          { categoryId: { $in: allCatIds } },
+          { subcategoryId: { $in: allCatIds } },
+        ];
+      } else {
+        // Category specified does not exist -> return 0 products, do NOT leak other category products!
+        query._id = new mongoose.Types.ObjectId();
+      }
     }
 
     if (filter.subcategoryId && mongoose.Types.ObjectId.isValid(filter.subcategoryId)) {
@@ -174,11 +196,31 @@ export class ProductService {
         .lean(),
     ]);
 
+    // Deduplicate across collections so the same product is never repeated in multiple sections
+    const seenIds = new Set<string>();
+
+    const dedupe = (items: any[]) => {
+      const result: any[] = [];
+      for (const item of items) {
+        const idStr = item._id ? item._id.toString() : '';
+        if (idStr && !seenIds.has(idStr)) {
+          seenIds.add(idStr);
+          result.push(this.formatProduct(item));
+        }
+      }
+      return result;
+    };
+
+    const formattedEssentials = dedupe(essentials);
+    const formattedFeatured = dedupe(featured);
+    const formattedBestsellers = dedupe(bestsellers);
+    const formattedNewArrivals = dedupe(newArrivals);
+
     return {
-      featured: featured.map((p) => this.formatProduct(p)),
-      newArrivals: newArrivals.map((p) => this.formatProduct(p)),
-      bestsellers: bestsellers.map((p) => this.formatProduct(p)),
-      essentials: essentials.map((p) => this.formatProduct(p)),
+      essentials: formattedEssentials,
+      featured: formattedFeatured,
+      bestsellers: formattedBestsellers,
+      newArrivals: formattedNewArrivals,
     };
   }
 

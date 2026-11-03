@@ -1,4 +1,4 @@
-package com.kanhaiya.store.customer_flutter
+package com.kanhaiya.store.customer
 
 import android.Manifest
 import android.content.pm.PackageManager

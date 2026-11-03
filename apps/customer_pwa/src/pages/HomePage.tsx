@@ -69,10 +69,32 @@ export const HomePage: React.FC<HomePageProps> = ({
   if (loading) return <LoadingState message="Fetching fresh store catalog..." />;
   if (error) return <ErrorState message={error} onRetry={loadData} />;
 
-  const featured = collections?.featured || [];
-  const newArrivals = collections?.newArrivals || [];
-  const bestsellers = collections?.bestsellers || [];
-  const essentials = collections?.essentials || [];
+  const rawFeatured = collections?.featured || [];
+  const rawNewArrivals = collections?.newArrivals || [];
+  const rawBestsellers = collections?.bestsellers || [];
+  const rawEssentials = collections?.essentials || [];
+
+  const displayedIds = new Set<string>();
+  const essentials = rawEssentials.filter((p) => {
+    if (displayedIds.has(p.id)) return false;
+    displayedIds.add(p.id);
+    return true;
+  });
+  const featured = rawFeatured.filter((p) => {
+    if (displayedIds.has(p.id)) return false;
+    displayedIds.add(p.id);
+    return true;
+  });
+  const bestsellers = rawBestsellers.filter((p) => {
+    if (displayedIds.has(p.id)) return false;
+    displayedIds.add(p.id);
+    return true;
+  });
+  const newArrivals = rawNewArrivals.filter((p) => {
+    if (displayedIds.has(p.id)) return false;
+    displayedIds.add(p.id);
+    return true;
+  });
 
   return (
     <div style={{ padding: '16px' }}>

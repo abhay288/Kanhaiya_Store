@@ -158,6 +158,24 @@ class AppStrings {
     'Personal Care Products': {'en': 'Personal Care Products', 'hi': 'व्यक्तिगत देखभाल उत्पाद'},
     'Image URL': {'en': 'Image URL', 'hi': 'फोटो का URL'},
     'Or enter Image URL': {'en': 'Or enter Image URL', 'hi': 'या फोटो का सीधा URL डालें'},
+    'Filter': {'en': 'Filter', 'hi': 'फ़िल्टर'},
+    'Categories & Filters': {'en': 'Categories & Filters', 'hi': 'श्रेणियां एवं फ़िल्टर'},
+    'Quick Filters': {'en': 'Quick Filters', 'hi': 'त्वरित फ़िल्टर'},
+    'Search atta, dal, namkeen...': {
+      'en': 'Search atta, dal, namkeen...',
+      'hi': 'आटा, दाल, नमकीन खोजें...',
+    },
+    'Namkeen & Snacks': {'en': 'Namkeen & Snacks', 'hi': 'नमकीन और स्नैक्स'},
+    'Water Bottles & Cold Drinks': {'en': 'Water Bottles & Cold Drinks', 'hi': 'पानी की बोतलें एवं कोल्ड ड्रिंक्स'},
+    'Sauces, Jams & Spreads': {'en': 'Sauces, Jams & Spreads', 'hi': 'सॉस, जैम और चटनी'},
+    'Cooking Oils & Ghee': {'en': 'Cooking Oils & Ghee', 'hi': 'खाद्य तेल एवं देसी घी'},
+    'Biscuits & Bakery': {'en': 'Biscuits & Bakery', 'hi': 'बिस्कुट और बेकरी'},
+    'Tea, Coffee & Beverages': {'en': 'Tea, Coffee & Beverages', 'hi': 'चाय, कॉफ़ी एवं पेय'},
+    'Dairy & Milk Products': {'en': 'Dairy & Milk Products', 'hi': 'दूध एवं डेयरी उत्पाद'},
+    'Pooja & Festive Needs': {'en': 'Pooja & Festive Needs', 'hi': 'पूजा एवं हवन सामग्री'},
+    'Manage Store Categories': {'en': 'Manage Store Categories', 'hi': 'श्रेणियां प्रबंधित करें'},
+    'Store Admin: Manage Categories': {'en': 'Store Admin: Manage Categories', 'hi': 'स्टोर एडमिन: श्रेणियां प्रबंधित करें'},
+    'Manage': {'en': 'Manage', 'hi': 'प्रबंधित करें'},
   };
 
   static String get(String key, String lang) {

@@ -295,7 +295,7 @@ The Flutter application is located in [`apps/customer_flutter`](file:///e:/Kanha
 
 ### App Identity & Manifest
 
-- **Package / Application ID:** `com.kanhaiya.store.customer_flutter`
+- **Package / Application ID:** `com.kanhaiya.store.customer`
 - **Launcher Label:** `Kanhaiya General Store`
 - **Permissions:** `<uses-permission android:name="android.permission.INTERNET"/>` in [`AndroidManifest.xml`](file:///e:/Kanhaiya%20Store%20App/apps/customer_flutter/android/app/src/main/AndroidManifest.xml).
 - **Target SDK:** Android 34 (Android 14).

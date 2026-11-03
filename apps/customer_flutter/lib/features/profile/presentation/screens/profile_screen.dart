@@ -776,7 +776,7 @@ class ProfileScreen extends ConsumerWidget {
                         ListTile(
                           leading: const Icon(Icons.info_outline, color: AppColors.primary, size: 20),
                           title: const Text('About Kanhaiya General Store', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                          subtitle: const Text('Fatehpur Roshnai, Kanpur Dehat • App v1.0.0', style: TextStyle(fontSize: 11)),
+                          subtitle: const Text('Fatehpur Roshnai, Kanpur Dehat • App v1.0.1', style: TextStyle(fontSize: 11)),
                         ),
                       ],
                     ),
@@ -1145,7 +1145,7 @@ class ProfileScreen extends ConsumerWidget {
                 Image.asset('assets/images/kgs_logo.png', width: 28, height: 28),
                 const SizedBox(width: 8),
                 const Text(
-                  'Kanhaiya General Store • App v1.0.0',
+                  'Kanhaiya General Store • App v1.0.1',
                   style: TextStyle(fontSize: 11, color: AppColors.textTertiary, fontWeight: FontWeight.w600),
                 ),
               ],

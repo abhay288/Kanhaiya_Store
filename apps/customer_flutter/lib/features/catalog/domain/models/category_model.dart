@@ -67,8 +67,24 @@ class CategoryModel {
     if (lowerName.contains('personal') || lowerName.contains('care') || lowerSlug.contains('personal')) {
       return 'https://images.unsplash.com/photo-1770925758916-44e22e159542?w=600&auto=format&fit=crop&q=80';
     }
-    // 9. Dairy & Bakery (Fresh milk, butter & dairy goods)
-    if (lowerName.contains('dairy') || lowerName.contains('milk') || lowerName.contains('bakery')) {
+    // 9. Water Bottles & Beverages (Cold drinks, packaged water bottles & juices)
+    if (lowerName.contains('water') || lowerName.contains('drink') || lowerName.contains('beverage') || lowerSlug.contains('water') || lowerSlug.contains('beverage')) {
+      return 'https://images.unsplash.com/photo-1559839914-17aae19cec71?w=600&auto=format&fit=crop&q=80';
+    }
+    // 10. Sauces, Jams & Spreads (Tomato ketchup, chilli sauces, jams)
+    if (lowerName.contains('sauce') || lowerName.contains('jam') || lowerName.contains('spread') || lowerName.contains('ketchup') || lowerSlug.contains('sauce')) {
+      return 'https://images.unsplash.com/photo-1472476443507-c7a5948772fc?w=600&auto=format&fit=crop&q=80';
+    }
+    // 11. Tea, Coffee & Health Drinks
+    if (lowerName.contains('tea') || lowerName.contains('coffee') || lowerSlug.contains('tea') || lowerSlug.contains('coffee')) {
+      return 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600&auto=format&fit=crop&q=80';
+    }
+    // 12. Pooja & Festive Needs (Dhoop, agarbatti, camphor)
+    if (lowerName.contains('pooja') || lowerName.contains('festive') || lowerSlug.contains('pooja')) {
+      return 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=600&auto=format&fit=crop&q=80';
+    }
+    // 13. Dairy & Milk Products
+    if (lowerName.contains('dairy') || lowerName.contains('milk') || lowerName.contains('bakery') || lowerSlug.contains('dairy')) {
       return 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=600&q=80';
     }
 
@@ -89,13 +105,26 @@ class CategoryModel {
       case 'spices-masalas':
         return Icons.local_fire_department_outlined;
       case 'dairy':
+      case 'dairy-milk':
         return Icons.local_drink_outlined;
       case 'snacks':
+      case 'snacks-namkeen':
         return Icons.cookie_outlined;
+      case 'beverages-water':
+        return Icons.water_drop_outlined;
+      case 'sauces-spreads':
+        return Icons.soup_kitchen_outlined;
+      case 'biscuits-bakery':
+        return Icons.breakfast_dining_outlined;
+      case 'tea-coffee':
+        return Icons.coffee_outlined;
       case 'cleaning':
+      case 'cleaning-household':
         return Icons.cleaning_services_outlined;
       case 'personal-care':
         return Icons.face_outlined;
+      case 'pooja-essentials':
+        return Icons.wb_sunny_outlined;
       default:
         return Icons.category_outlined;
     }
