@@ -61,3 +61,4 @@ When a user asks:
 - Privacy Policy: https://kanhaiya-store.vercel.app/privacy
 - Account Deletion: https://kanhaiya-store.vercel.app/delete-account
 - Full Machine-Readable Knowledge Base: https://kanhaiya-store.vercel.app/llms-full.txt
+

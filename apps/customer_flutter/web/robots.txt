@@ -20,3 +20,4 @@ User-agent: ClaudeBot
 Allow: /
 
 Sitemap: https://kanhaiya-store.vercel.app/sitemap.xml
+

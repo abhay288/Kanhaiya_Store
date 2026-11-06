@@ -63,3 +63,4 @@ Allow: /
 # XML Sitemaps
 Sitemap: https://kanhaiya-store.vercel.app/sitemap.xml
 Sitemap: https://kanhaiyastore.com/sitemap.xml
+
