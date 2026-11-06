@@ -40,6 +40,10 @@
       "destination": "/sitemap.xml"
     },
     {
+      "source": "/sitemaps.xml",
+      "destination": "/sitemaps.xml"
+    },
+    {
       "source": "/llms.txt",
       "destination": "/llms.txt"
     },
