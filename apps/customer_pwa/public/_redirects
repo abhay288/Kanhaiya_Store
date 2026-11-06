@@ -4,4 +4,5 @@
 /terms-of-service /terms.html         200
 /delete-account  /delete-account.html 200
 /account-deletion /delete-account.html 200
+/app-ads.txt     /app-ads.txt         200
 /*                /index.html          200
