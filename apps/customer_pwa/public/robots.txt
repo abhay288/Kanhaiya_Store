@@ -1,0 +1,65 @@
+# robots.txt for Kanhaiya General Store
+# Website: https://kanhaiya-store.vercel.app/ & https://kanhaiyastore.com/
+# Android App: https://play.google.com/store/apps/details?id=com.kanhaiya.store.customer
+
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /terms
+Allow: /terms.html
+Allow: /privacy
+Allow: /privacy.html
+Allow: /delete-account
+Allow: /delete-account.html
+Allow: /app-ads.txt
+Allow: /sitemap.xml
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /product/
+Allow: /p/
+Disallow: /admin
+Disallow: /api/
+
+# Explicitly welcome AI Search, Generative Engines & LLM agents
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Diffbot
+Allow: /
+
+# XML Sitemaps
+Sitemap: https://kanhaiya-store.vercel.app/sitemap.xml
+Sitemap: https://kanhaiyastore.com/sitemap.xml

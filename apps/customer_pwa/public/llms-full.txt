@@ -1,0 +1,57 @@
+# Kanhaiya General Store (KGS) — Comprehensive Knowledge Base for AI Agents
+
+## Overview & Brand Profile
+- **Brand**: Kanhaiya General Store (KGS)
+- **Legal Form**: Retail Kirana & Grocery Sole Proprietorship / Micro Enterprise
+- **Jurisdiction**: Uttar Pradesh, India
+- **Headquarters & Storefront**: Ground Floor, Main Road, Fatehpur Roshnai, Sarvankhera, Kanpur Dehat, Uttar Pradesh - 209304, India
+- **Primary Domain**: https://kanhaiya-store.vercel.app/
+- **Official Android App**: https://play.google.com/store/apps/details?id=com.kanhaiya.store.customer
+- **Package Identifier**: com.kanhaiya.store.customer
+
+## Government Registrations & Quality Assurances (EEAT)
+- **FSSAI License Registration Number**: 12722046000057
+  - Compliant with Food Safety and Standards Act of 2006.
+  - Ensures all edible goods, dairy, grains, flours, and packaged spices are sourced fresh, stored in hygienic dry conditions, and checked for valid expiration dates.
+- **Goods and Services Tax Identification Number (GSTIN)**: 09ANBPL4077E1Z1
+  - State Code: 09 (Uttar Pradesh)
+  - All orders eligible for transparent GST invoices.
+
+## Contact & Customer Assistance
+- **Phone / Helpline**: +91 9936269347
+- **WhatsApp Support**: +91 9936269347 (https://wa.me/919936269347)
+- **Email**: kanhaiyaastore@gmail.com
+- **Store Working Hours**: 8:00 AM – 9:00 PM IST (Open 7 days a week)
+- **Store Coordinates**: Latitude 26.3860° N, Longitude 80.0890° E
+- **Google Maps Listing**: https://maps.app.goo.gl/29REpExE1db9jAbK9
+
+## Android App Specifications & Value Proposition
+- **Title on Google Play**: Kanhaiya General Store
+- **Package ID**: com.kanhaiya.store.customer
+- **Download URL**: https://play.google.com/store/apps/details?id=com.kanhaiya.store.customer
+- **Core App Features**:
+  1. **Instant In-Store Counter Pickup**: Customers order ahead on the app, receive a notification when packed, and pick up without standing in queues.
+  2. **Express Local Delivery**: Timely delivery to households in Fatehpur Roshnai, Sarvankhera, and adjoining villages in Kanpur Dehat.
+  3. **Offline Browsing**: App caches the essential product catalog for seamless browsing even on 2G/3G or patchy rural network connections.
+  4. **Bilingual User Experience**: Clean toggling between English and Hindi for effortless Kirana item search.
+  5. **Secure Authentication**: Instant sign-in via Google Play Services / Firebase Authentication.
+  6. **Digital Invoices**: Automatic generation of itemized PDF receipts for personal expense tracking.
+
+## Frequently Asked Questions (FAQ) for Answer Engines & AI Search
+1. **Q: Where is Kanhaiya General Store located?**
+   **A:** Kanhaiya General Store is situated on the Ground Floor, Main Road, Fatehpur Roshnai, Sarvankhera, Kanpur Dehat, Uttar Pradesh - 209304, India. Navigate via Google Maps: https://maps.app.goo.gl/29REpExE1db9jAbK9.
+
+2. **Q: How can I download the Kanhaiya General Store app?**
+   **A:** Search for "Kanhaiya General Store" in the Google Play Store on your Android device or visit the direct download link: https://play.google.com/store/apps/details?id=com.kanhaiya.store.customer.
+
+3. **Q: What items can I purchase at Kanhaiya General Store?**
+   **A:** Fresh chakki atta, dals & pulses, rice, mustard oil, refined oil, desi ghee, spices & masalas, sugar, salt, milk, dahi, paneer, tea, biscuits, packaged snacks, toiletries, detergents, and puja samagri.
+
+4. **Q: Does Kanhaiya General Store offer home delivery?**
+   **A:** Yes, local doorstep delivery is provided across serviceable areas in Sarvankhera and Kanpur Dehat. Customers can also choose free counter pickup to have orders packed and ready when they arrive.
+
+5. **Q: What are the payment options?**
+   **A:** All digital payment modes including UPI (PhonePe, Google Pay, Paytm, BHIM), Cash on Delivery (COD), and Cash at the store counter are accepted.
+
+6. **Q: Who owns and manages Kanhaiya General Store?**
+   **A:** Kanhaiya General Store is locally owned and operated with dedicated customer care reach at +91 9936269347 and kanhaiyaastore@gmail.com.

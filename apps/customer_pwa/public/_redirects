@@ -5,4 +5,8 @@
 /delete-account  /delete-account.html 200
 /account-deletion /delete-account.html 200
 /app-ads.txt     /app-ads.txt         200
+/robots.txt      /robots.txt          200
+/sitemap.xml     /sitemap.xml         200
+/llms.txt        /llms.txt            200
+/llms-full.txt   /llms-full.txt       200
 /*                /index.html          200

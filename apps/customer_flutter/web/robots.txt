@@ -1,0 +1,22 @@
+# robots.txt for Kanhaiya General Store
+User-agent: *
+Allow: /
+Allow: /sitemap.xml
+Allow: /app-ads.txt
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+Sitemap: https://kanhaiya-store.vercel.app/sitemap.xml
