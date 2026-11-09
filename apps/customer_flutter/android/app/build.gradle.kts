@@ -58,6 +58,12 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = if (keystoreFile != null && keystoreFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
@@ -65,6 +71,11 @@ android {
             }
         }
     }
+}
+
+dependencies {
+    implementation("androidx.activity:activity-ktx:1.9.3")
+    implementation("androidx.core:core-ktx:1.15.0")
 }
 
 flutter {
